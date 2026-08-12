@@ -383,30 +383,20 @@ manualclean:
 #   make release                 build build/dist/commander-calc-1.0.zip
 #   make release VERSION=1.1     ...under another name
 #
-# One archive, holding everything a user cannot build for themselves and
-# nothing they have to:
+# Layout of the zip:
 #
 #   commander-calc-1.0/
 #     README.TXT                  what to copy where, and how to start it
-#     README.md                   the developer readme, for building it
+#     README.md                   the developer readme
 #     commander-calc-manual.pdf   the reference manual
 #     CMDRCALC/                   <-- copy THIS onto the card
 #       CMDRCALC.PRG
-#       OVL1.BIN ... OVL17.BIN    all of them, all required
+#       OVL1.BIN ... OVL17.BIN
 #       BUDGET.XLSX STOCK.XLSX TOTALS.XLSX FUNCS.XLSX
 #
-# The examples sit in with the program deliberately, not in an EXAMPLES/
-# directory beside it. src/ui/filedlg.c skips e.is_dir -- the file dialog
-# lists files and offers no way to change directory -- so a workbook one
-# level down from CMDRCALC.PRG cannot be opened from inside the program at
-# all. A subdirectory would look tidier in the zip and be useless on the
-# machine.
-#
-# It depends on `test`: the host suite is what says the importer and the
-# exporter still agree with their fixtures, and a release that cannot pass
-# it has no business being uploaded. The manual is rebuilt when pdflatex is
-# here, so the PDF in the zip matches the sources it was built from, and
-# falls back to the committed docs/manual/pdf copy when it is not.
+# The examples go IN with the program, not in an EXAMPLES/ directory beside
+# it: filedlg.c skips e.is_dir and offers no way to change directory, so a
+# workbook one level down cannot be opened from inside the program at all.
 VERSION ?= 1.0
 
 DISTDIR := $(BUILD)/dist
@@ -417,10 +407,9 @@ RELZIP  := $(DISTDIR)/commander-calc-$(VERSION).zip
 MANUAL_PDF_BUILT := $(MANUALDIR)/build/commander-calc-manual.pdf
 MANUAL_PDF_KEPT  := $(MANUALDIR)/pdf/commander-calc-manual.pdf
 
-# Written into the zip, by way of the recipe's environment. Do not put a '#'
-# in here -- make eats it. And it is NOT written with $(file >...): make
-# expands a recipe whole before running the first line of it, so the write
-# would happen before the mkdir that makes somewhere to write to.
+# No '#' in here -- make eats it. Exported, and written out with printf,
+# because $(file >...) in a recipe runs before the mkdir: make expands the
+# whole recipe before the first line of it.
 export RELEASE_README
 define RELEASE_README
 Commander Calc $(VERSION)
@@ -432,7 +421,7 @@ WHAT IS IN HERE
 
   CMDRCALC/                  the program, ready to run
     CMDRCALC.PRG             the program itself
-    OVL1.BIN .. OVL$(OVL_N).BIN     its overlays, every one of them required
+    OVL1.BIN .. OVL$(OVL_N).BIN    its overlays, every one of them required
     BUDGET.XLSX              money, percentages, and a total that adds up
     STOCK.XLSX               in no order at all: try Sheet > Sort up
     TOTALS.XLSX              three sheets, and Summary reads the other two
@@ -478,19 +467,17 @@ release: test x16
 	@rm -rf $(RELDIR) $(RELZIP) $(RELZIP).sha256
 	@mkdir -p $(CARDDIR)
 	@cp $(BUILD)/$(NAME) $(CARDDIR)/
-	@# Named one by one rather than copied with a glob: a missing overlay is
-	@# a hang on the machine with no diagnostic, and the zip is the last
-	@# place it can still be caught.
+	@# One by one, not a glob: a missing overlay is a hang on the machine
+	@# with no diagnostic, and this is the last place to catch it.
 	@for n in $$(seq 1 $(OVL_N)); do \
 	    cp $(BUILD)/OVL$$n.BIN $(CARDDIR)/ 2>/dev/null || \
 	      { echo "release: $(BUILD)/OVL$$n.BIN missing -- try make clean x16"; \
 	        exit 1; }; \
 	done
 	@python3 tools/make_examples.py $(CARDDIR) >/dev/null
-	@# From scratch, deliberately. pdflatex reads the .aux files the last run
-	@# left behind, and one written by an older source tree fails the run
-	@# outright ("Extra }, or forgotten \endgroup") rather than being
-	@# overwritten. A release is not the place to debug that.
+	@# clean first: a stale .aux from an older source tree fails the pdflatex
+	@# run outright ("Extra }, or forgotten \endgroup") instead of being
+	@# overwritten. Falls back to the committed pdf/ copy with no TeX here.
 	@if command -v pdflatex >/dev/null 2>&1; then \
 	    $(MAKE) --no-print-directory -C $(MANUALDIR) clean >/dev/null && \
 	    $(MAKE) --no-print-directory -C $(MANUALDIR) >/dev/null; \
@@ -506,19 +493,17 @@ release: test x16
 	 fi
 	@cp README.md $(RELDIR)/
 	@printf '%s\n' "$$RELEASE_README" > $(RELDIR)/README.TXT
-	@# -X drops the uid/gid and extra-attribute records, so the same tree
-	@# zips to the same bytes on another machine.
+	@# -X leaves out the uid/gid of whoever built it. Not reproducible even
+	@# so -- zip stores mtimes -- hence the .sha256 beside it.
 	@cd $(DISTDIR) && zip -qXr commander-calc-$(VERSION).zip \
 	    commander-calc-$(VERSION)
 	@cd $(DISTDIR) && sha256sum commander-calc-$(VERSION).zip \
 	    > commander-calc-$(VERSION).zip.sha256
 	@echo "--- $(RELZIP) ---"
-	@unzip -l $(RELZIP) | sed -n '4,$$p' | head -30
+	@unzip -l $(RELZIP) | sed -n '4,$$p' | head -40
 	@cut -c1-16 $(RELZIP).sha256 | sed 's/^/  sha256 /'
 
-# What a release is checked against before it goes out: it unpacks, the
-# program and every overlay are in it, and the examples are readable by the
-# importer's own checker.
+# Unpack the zip and check it holds what it should, before it goes out.
 .PHONY: releasecheck
 releasecheck: release
 	@rm -rf $(DISTDIR)/verify && mkdir -p $(DISTDIR)/verify
