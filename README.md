@@ -189,8 +189,13 @@ cc65 installed under a non-default prefix needs `CC65_HOME` set, or its
 and message, and the byte layout of the native file format:
 
 ```
-make manual        # docs/manual/build/commander-calc-manual.pdf
+make manual        # build it     -> docs/manual/build/
+make manualpdf     # and publish  -> docs/manual/pdf/
 ```
+
+A built copy is committed at
+[`docs/manual/pdf/commander-calc-manual.pdf`](docs/manual/pdf/commander-calc-manual.pdf),
+so it can be read without a TeX installation.
 
 ## Layout
 

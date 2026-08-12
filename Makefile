@@ -5,6 +5,8 @@
 #   make run        launch in the emulator
 #   make debug      launch in the emulator with the visual debugger
 #   make echo       headless run, KERNAL output to stdout (for scripts/CI)
+#   make release    build the distribution zip (program, overlays, examples,
+#                   manual) into build/dist
 #   make clean
 #
 # Sources are split by directory and by filename suffix:
@@ -375,6 +377,157 @@ manualview:
 .PHONY: manualclean
 manualclean:
 	@$(MAKE) --no-print-directory -C $(MANUALDIR) clean
+
+# ---- release --------------------------------------------------------
+#
+#   make release                 build build/dist/commander-calc-1.0.zip
+#   make release VERSION=1.1     ...under another name
+#
+# One archive, holding everything a user cannot build for themselves and
+# nothing they have to:
+#
+#   commander-calc-1.0/
+#     README.TXT                  what to copy where, and how to start it
+#     README.md                   the developer readme, for building it
+#     commander-calc-manual.pdf   the reference manual
+#     CMDRCALC/                   <-- copy THIS onto the card
+#       CMDRCALC.PRG
+#       OVL1.BIN ... OVL17.BIN    all of them, all required
+#       BUDGET.XLSX STOCK.XLSX TOTALS.XLSX FUNCS.XLSX
+#
+# The examples sit in with the program deliberately, not in an EXAMPLES/
+# directory beside it. src/ui/filedlg.c skips e.is_dir -- the file dialog
+# lists files and offers no way to change directory -- so a workbook one
+# level down from CMDRCALC.PRG cannot be opened from inside the program at
+# all. A subdirectory would look tidier in the zip and be useless on the
+# machine.
+#
+# It depends on `test`: the host suite is what says the importer and the
+# exporter still agree with their fixtures, and a release that cannot pass
+# it has no business being uploaded. The manual is rebuilt when pdflatex is
+# here, so the PDF in the zip matches the sources it was built from, and
+# falls back to the committed docs/manual/pdf copy when it is not.
+VERSION ?= 1.0
+
+DISTDIR := $(BUILD)/dist
+RELDIR  := $(DISTDIR)/commander-calc-$(VERSION)
+CARDDIR := $(RELDIR)/CMDRCALC
+RELZIP  := $(DISTDIR)/commander-calc-$(VERSION).zip
+
+MANUAL_PDF_BUILT := $(MANUALDIR)/build/commander-calc-manual.pdf
+MANUAL_PDF_KEPT  := $(MANUALDIR)/pdf/commander-calc-manual.pdf
+
+# Written into the zip, by way of the recipe's environment. Do not put a '#'
+# in here -- make eats it. And it is NOT written with $(file >...): make
+# expands a recipe whole before running the first line of it, so the write
+# would happen before the mkdir that makes somewhere to write to.
+export RELEASE_README
+define RELEASE_README
+Commander Calc $(VERSION)
+The Professional Spreadsheet for the Commander X16
+https://github.com/sandlbn/commander-calc
+
+
+WHAT IS IN HERE
+
+  CMDRCALC/                  the program, ready to run
+    CMDRCALC.PRG             the program itself
+    OVL1.BIN .. OVL$(OVL_N).BIN     its overlays, every one of them required
+    BUDGET.XLSX              money, percentages, and a total that adds up
+    STOCK.XLSX               in no order at all: try Sheet > Sort up
+    TOTALS.XLSX              three sheets, and Summary reads the other two
+    FUNCS.XLSX               every function, beside what it should say
+  commander-calc-manual.pdf  the reference manual: every command, every key
+  README.md                  building it from source
+
+
+INSTALLING
+
+  Copy the CMDRCALC directory onto a CMDR-DOS-formatted SD card, or copy the
+  files in it into a directory of your own choosing. CMDRCALC.PRG and all
+  $(OVL_N) overlays must stay together in the one directory, on the one device:
+  the program brings an overlay in whenever you open a file, write one, or
+  draw a chart, and it looks for them beside itself.
+
+  Then:
+
+    LOAD"CMDRCALC.PRG",8
+    RUN
+
+  Under the emulator:
+
+    x16emu -rom rom.bin -fsroot . -prg CMDRCALC.PRG -run
+
+
+THE EXAMPLE WORKBOOKS
+
+  They are in with the program on purpose. The file dialog lists files and
+  not directories, so a workbook one level down cannot be opened from inside
+  the program. Delete them once you have had a look; nothing depends on them.
+
+
+WHAT IT NEEDS
+
+  A Commander X16 with 512 KB of banked RAM -- 2 MB is worth having for large
+  imports -- an 80-column display, and an SD card or host filesystem. A mouse
+  if you like, but every command has keys.
+endef
+
+.PHONY: release
+release: test x16
+	@rm -rf $(RELDIR) $(RELZIP) $(RELZIP).sha256
+	@mkdir -p $(CARDDIR)
+	@cp $(BUILD)/$(NAME) $(CARDDIR)/
+	@# Named one by one rather than copied with a glob: a missing overlay is
+	@# a hang on the machine with no diagnostic, and the zip is the last
+	@# place it can still be caught.
+	@for n in $$(seq 1 $(OVL_N)); do \
+	    cp $(BUILD)/OVL$$n.BIN $(CARDDIR)/ 2>/dev/null || \
+	      { echo "release: $(BUILD)/OVL$$n.BIN missing -- try make clean x16"; \
+	        exit 1; }; \
+	done
+	@python3 tools/make_examples.py $(CARDDIR) >/dev/null
+	@if command -v pdflatex >/dev/null 2>&1; then \
+	    $(MAKE) --no-print-directory -C $(MANUALDIR) >/dev/null; \
+	 fi
+	@if [ -f $(MANUAL_PDF_BUILT) ]; then \
+	    cp $(MANUAL_PDF_BUILT) $(RELDIR)/; \
+	 elif [ -f $(MANUAL_PDF_KEPT) ]; then \
+	    echo "  note: no TeX here, using the committed $(MANUAL_PDF_KEPT)"; \
+	    cp $(MANUAL_PDF_KEPT) $(RELDIR)/; \
+	 else \
+	    echo "release: no manual PDF -- install TeX Live or run make manualpdf"; \
+	    exit 1; \
+	 fi
+	@cp README.md $(RELDIR)/
+	@printf '%s\n' "$$RELEASE_README" > $(RELDIR)/README.TXT
+	@# -X drops the uid/gid and extra-attribute records, so the same tree
+	@# zips to the same bytes on another machine.
+	@cd $(DISTDIR) && zip -qXr commander-calc-$(VERSION).zip \
+	    commander-calc-$(VERSION)
+	@cd $(DISTDIR) && sha256sum commander-calc-$(VERSION).zip \
+	    > commander-calc-$(VERSION).zip.sha256
+	@echo "--- $(RELZIP) ---"
+	@unzip -l $(RELZIP) | sed -n '4,$$p' | head -30
+	@cut -c1-16 $(RELZIP).sha256 | sed 's/^/  sha256 /'
+
+# What a release is checked against before it goes out: it unpacks, the
+# program and every overlay are in it, and the examples are readable by the
+# importer's own checker.
+.PHONY: releasecheck
+releasecheck: release
+	@rm -rf $(DISTDIR)/verify && mkdir -p $(DISTDIR)/verify
+	@cd $(DISTDIR)/verify && unzip -q ../commander-calc-$(VERSION).zip
+	@v=$(DISTDIR)/verify/commander-calc-$(VERSION)/CMDRCALC; \
+	 test -f $$v/$(NAME) || { echo "no $(NAME) in the zip"; exit 1; }; \
+	 n=$$(ls $$v/OVL*.BIN 2>/dev/null | wc -l); \
+	 [ "$$n" -eq $(OVL_N) ] || { echo "$$n overlays in the zip, want $(OVL_N)"; exit 1; }; \
+	 for x in BUDGET STOCK TOTALS FUNCS; do \
+	     python3 tools/check_xlsx.py $$v/$$x.XLSX >/dev/null || exit 1; \
+	 done; \
+	 test -f $(DISTDIR)/verify/commander-calc-$(VERSION)/commander-calc-manual.pdf \
+	     || { echo "no manual in the zip"; exit 1; }
+	@echo "  release checks out: $(NAME), $(OVL_N) overlays, 4 examples, manual"
 
 # ---- housekeeping ---------------------------------------------------
 .PHONY: clean
