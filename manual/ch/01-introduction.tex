@@ -1,0 +1,108 @@
+\chapter{Introduction}
+\label{ch:intro}
+
+\ccprod{} is a spreadsheet program for the Commander X16. It holds up to
+sixteen worksheets in one workbook, sixteen thousand cells on each of them,
+and recalculates a formula written in terms of any of the others. It reads and
+writes its own file format, imports and exports comma-separated text, and
+imports and exports Excel \fname{.XLSX} workbooks. It does all of that in a
+thirty-kilobyte program on a 65C02 running at eight megahertz.
+
+That last sentence is the reason for most of this manual. \ccprod{} is not a
+scaled-down version of a large program; it is a small program, designed as one,
+and the shape of it shows. Knowing what it does \emph{not} do is as useful as
+knowing what it does, so this manual says both.
+
+\section{What Commander Calc is}
+
+\begin{ccsteps}
+\item \textbf{A worksheet program.} A grid of 256 columns by 65,535 rows,
+addressed \cellref{A1} to \cellref{IV65535}. Cells hold numbers, text, dates,
+\msg{TRUE} and \msg{FALSE}, formulas, and error values.
+\item \textbf{A workbook program.} Up to sixteen worksheets in one file, with
+their own names and their own tabs, and formulas that reach across them:
+\fml{=SUM(Q1!B2:B40)} does what it looks like.
+\item \textbf{A block editor.} Mark a rectangle of any size, then copy it,
+paste it somewhere else, or clear it in one command.
+\item \textbf{Formulas that move with their cells.} A pasted formula has its
+references rewritten by the distance the block travelled, and so does one
+carried along by a sort or by an inserted row. A \fml{\$} pins whatever should
+not move.
+\item \textbf{Charts.} Three commands draw the numbers in the cursor's column
+as bars, as a line, or as a pie, labelled from the column beside them --- and
+any of them can be saved to the card as a picture file.
+\item \textbf{A calculator with fourteen functions.} \fn{SUM}, \fn{AVERAGE},
+\fn{MIN}, \fn{MAX}, \fn{COUNT}, \fn{IF}, \fn{AND}, \fn{OR}, \fn{NOT},
+\fn{ABS}, \fn{ROUND}, \fn{INT}, \fn{MOD} and \fn{LEN}. That is the whole list;
+Chapter~\ref{ch:funcref} documents every one.
+\item \textbf{A program that reads other people's files.} An Excel workbook
+saved as \fname{.XLSX} can be opened, with its numbers, text, dates, number
+formats, column widths, multiple worksheets and --- as far as the fourteen
+functions reach --- its formulas.
+\item \textbf{A program that writes files other people can read.} A workbook
+can be written back out as \fname{.XLSX} or as \fname{.CSV}.
+\end{ccsteps}
+
+\section{What Commander Calc is not}
+
+It is not Lotus~1-2-3 and it is not Excel, and it does not pretend to be. The
+list below is the short version; Appendix~\ref{app:differences} is the long one.
+
+\begin{ccsteps}
+\item \textbf{There is no cut or move.} Copy and paste, and delete what you
+left behind.
+\item \textbf{There are no colour or font commands.} \ccprod{} sets column
+widths and freezes headings, and it displays eight number formats, bold and
+three alignments faithfully --- but the only way to get a \emph{format} into a
+workbook is to import a file that already has one. Nothing on the menus sets a
+number format, bold, or a colour.
+\item \textbf{There are no text functions, lookup functions or date
+functions.} No \fn{LEFT}, no \fn{VLOOKUP}, no \fn{SUMIF}, no \fn{TODAY}.
+\item \textbf{Undo is one level deep.} One cell. Sorting has its own separate
+one-level undo, and a pasted block cannot be taken back at all.
+\item \textbf{A formula longer than 128 characters is never rewritten.} It is
+left exactly as it was rather than half-adjusted, wherever it is moved to.
+\item \textbf{There are no macros, no printing and no windows}, and a chart
+covers one column at a time.
+\end{ccsteps}
+
+\begin{ccnote}
+Most of these are absences rather than defects: work that has not been done
+rather than work that was done wrong. Where something is actually broken ---
+and there are one or two --- this manual says so at the point where you would
+meet it.
+\end{ccnote}
+
+\section{What you need}
+\index{requirements}
+
+\begin{cctable}{You need}{Notes}{1.5in}{3.32in}
+A Commander X16 & Or the \fname{x16emu} emulator, which is what most of this
+manual was written against. \\
+512K of banked RAM & The machine's standard fitting. The workbook lives
+entirely in banked RAM, so more of it means a bigger workbook; \ccprod{} will
+use up to the 2M maximum if the machine has it. \\
+A storage device at unit 8 & An SD card under CMDR-DOS, or the emulator's host
+filesystem. \\
+An 80 by 60 text display & The default. \ccprod{} adapts to a smaller text mode
+and refuses to run in anything shorter than ten lines. \\
+A mouse & Optional. Everything can be done from the keyboard; the mouse is
+supported for menus, dialogues, moving the cursor and scrolling. \\
+\end{cctable}
+
+\section{Where to go next}
+
+\begin{cctable}{If you want to}{Read}{1.85in}{2.97in}
+Get the program running & Chapter~\ref{ch:installing} \\
+Understand the display & Chapter~\ref{ch:screen} \\
+Type something into a cell & Chapters~\ref{ch:moving} and \ref{ch:entering} \\
+Save your work & Chapter~\ref{ch:files} \\
+Open a spreadsheet from another program & Chapter~\ref{ch:importexport} \\
+Look up one command & Chapter~\ref{ch:cmdref} \\
+Look up one key & Chapter~\ref{ch:keyref} \\
+Look up one function & Chapter~\ref{ch:funcref} \\
+Draw a picture of some numbers & Chapter~\ref{ch:charting} \\
+Understand a message on the screen & Chapter~\ref{ch:messages} \\
+Know exactly how big a workbook can be & Appendix~\ref{app:limits} \\
+Know what is missing and why & Appendix~\ref{app:differences} \\
+\end{cctable}

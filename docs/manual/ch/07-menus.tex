@@ -1,0 +1,197 @@
+\chapter{Using Menus}
+\label{ch:menus}
+
+\section{The menu bar}
+\index{menu bar}
+
+The top line of the screen always reads:
+
+\begin{ccfigure}
+\ccscreenscale{1.5}
+\begin{tikzpicture}
+\node[inner sep=0pt,anchor=north west] (mb) at (0,0) {%
+\ccscreenbegin{44}{1}
+  \ccfillrow{0}{x16lgrey}
+  \cctext{0}{1}{x16black}{File~~Edit~~Layout~~Data~~Chart~~Sheet}
+\ccscreenend
+};
+\end{tikzpicture}
+\caption{The menu bar}
+\end{ccfigure}
+
+Six menus, and the division between them is by what a command acts on:
+
+\begin{cctable}{Menu}{Holds}{1.1in}{3.72in}
+\menupath{File} & Everything that touches the storage device. \\
+\menupath{Edit} & The current cell and what is in it. \\
+\menupath{Layout} & The shape of the sheet rather than its contents: which rows
+and columns exist, how wide they are, and what stays on screen while the rest
+scrolls. \\
+\menupath{Data} & What is done \emph{to} the numbers: sorting them, and
+recalculating them. \\
+\menupath{Chart} & The three ways of drawing them. \\
+\menupath{Sheet} & The worksheets themselves. \\
+\end{cctable}
+
+\section{Opening a menu}
+
+Press \key{F10}, or click on a menu name.
+
+\key{F10} opens \menupath{File}. From there \key{$\leftarrow$} and
+\key{$\rightarrow$} move between the six menus, wrapping round at either end,
+and \key{$\uparrow$} and \key{$\downarrow$} move the highlight through the
+items, also wrapping. \key{Return} chooses the highlighted item. \key{Esc}
+closes the menu without doing anything, and so does a second \key{F10}.
+
+With the mouse: click a name on the bar to open it, slide along the bar to open
+each in turn, move down the panel to highlight an item, and click to choose it.
+Clicking anywhere off the menu closes it.
+
+\begin{ccfigure}
+\ccscreenscale{1.5}
+\begin{tikzpicture}
+\node[inner sep=0pt,anchor=north west] (fm) at (0,0) {%
+\ccscreenbegin{44}{9}
+  \ccfillrow{0}{x16lgrey}
+  \cctext{0}{1}{x16black}{File~~Edit~~Layout~~Data~~Chart~~Sheet}
+  \ccfill{0}{1}{4}{x16yellow}
+  \cctext{0}{1}{x16black}{File}
+  \ccfillbox{1}{1}{15}{7}{x16mgrey}
+  \ccfill{1}{1}{15}{x16yellow}
+  \cctext{1}{2}{x16black}{New~~~~~~~~F1}
+  \cctext{2}{2}{x16white}{Open~~~~~~~F3}
+  \cctext{3}{2}{x16white}{Save~~~~~~~F4}
+  \cctext{4}{2}{x16white}{Save~as~~~~F6}
+  \cctext{5}{2}{x16white}{Import~~~~~F7}
+  \cctext{6}{2}{x16white}{Export~~~~~F8}
+  \cctext{7}{2}{x16white}{Quit~~~~~~~F9}
+\ccscreenend
+};
+\end{tikzpicture}
+\caption{The \menupath{File} menu, with \menupath{New} highlighted}
+\label{fig:filemenu}
+\end{ccfigure}
+
+\begin{ccnote}
+The highlight on the open menu's \emph{name} is four characters wide whatever
+the name is. \menupath{Sheet} therefore appears as \msg{Shee} in reverse video
+with a stray \msg{t} left in the bar colour beside it, and \menupath{Chart} as
+\msg{Char} with a stray \msg{t}. It is cosmetic, and it is not a sign that
+anything has gone wrong.
+\end{ccnote}
+
+\section{Function keys instead}
+
+Every command on \menupath{File}, and seven of the eight on \menupath{Edit},
+has a key printed beside it in the menu, and that key works from the worksheet
+without opening the menu at all. Most of the time those two menus are there to
+remind you what the keys are.
+
+The other four menus have no keys at all. Sorting, recalculating, charting,
+freezing, changing the shape of the grid and every worksheet command can only be
+reached through the bar. \menupath{Replace...} is the one command on
+\menupath{Edit} in the same position, sitting beside seven that do have keys.
+
+\begin{ccnote}
+The function keys also work \emph{while a menu is open}. Pressing \key{F7} with
+the \menupath{Edit} menu on screen closes it and starts an import. Only
+\key{PgUp} and \key{PgDn} are swallowed by an open menu.
+\end{ccnote}
+
+\section{The whole menu structure}
+\index{menus!complete list}
+
+\begin{ccfigure}
+\begin{tikzpicture}[x=1pt,y=-1pt,
+    lbl/.style={font=\sffamily\bfseries\fontsize{9}{11}\selectfont,text=ccink,
+                anchor=west},
+    itm/.style={font=\ttfamily\fontsize{8}{10.2}\selectfont,text=ccink,
+                anchor=west},
+    ann/.style={font=\sffamily\fontsize{7.4}{9.2}\selectfont,text=ccink,
+                anchor=west}]
+
+  % ---- File ----
+  \node[lbl] at (0,0) {File};
+  \draw[ccink,line width=1.2pt] (0,5) -- (84,5);
+  \foreach \i/\n/\k in {0/New/F1,1/Open/F3,2/Save/F4,3/{Save as}/F6,
+                        4/Import/F7,5/Export/F8,6/Quit/F9}{
+    \node[itm] at (5,{20+\i*13}) {\n};
+    \node[itm] at (62,{20+\i*13}) {\k};
+  }
+  \node[ann] at (0,116) {The storage};
+  \node[ann] at (0,127) {device.};
+
+  % ---- Edit ----
+  \node[lbl] at (100,0) {Edit};
+  \draw[ccink,line width=1.2pt] (100,5) -- (184,5);
+  \foreach \i/\n/\k in {0/{Edit cell}/F2,1/Select/{\textasciicircum A},
+                        2/Copy/{\textasciicircum C},3/Paste/{\textasciicircum V},
+                        4/Undo/F5,5/Clear/DEL,6/Find/{\textasciicircum F},
+                        7/{Replace...}/{}}{
+    \node[itm] at (105,{20+\i*13}) {\n};
+    \node[itm] at (162,{20+\i*13}) {\k};
+  }
+  \node[ann] at (100,129) {What is in the};
+  \node[ann] at (100,140) {cells.};
+
+  % ---- Layout ----
+  \node[lbl] at (215,0) {Layout};
+  \draw[ccink,line width=1.2pt] (215,5) -- (299,5);
+  \foreach \i/\n in {0/{Insert row},1/{Delete row},2/{Insert column},
+                     3/{Delete column},4/{Column width},5/Freeze}{
+    \node[itm] at (220,{20+\i*13}) {\n};
+  }
+  \node[ann] at (215,103) {The shape of the};
+  \node[ann] at (215,114) {grid itself.};
+
+  % ---- Data ----
+  \node[lbl] at (0,190) {Data};
+  \draw[ccink,line width=1.2pt] (0,195) -- (70,195);
+  \foreach \i/\n in {0/{Sort up},1/{Sort down},2/{Undo sort},
+                     3/{Recalc now},4/{Auto recalc}}{
+    \node[itm] at (5,{210+\i*13}) {\n};
+  }
+  \node[ann] at (0,280) {What is done to};
+  \node[ann] at (0,291) {the numbers.};
+
+  % ---- Chart ----
+  \node[lbl] at (100,190) {Chart};
+  \draw[ccink,line width=1.2pt] (100,195) -- (150,195);
+  \foreach \i/\n in {0/Bars,1/Line,2/Pie}{
+    \node[itm] at (105,{210+\i*13}) {\n};
+  }
+  \node[ann] at (100,254) {Drawing them.};
+
+  % ---- Sheet ----
+  \node[lbl] at (215,190) {Sheet};
+  \draw[ccink,line width=1.2pt] (215,195) -- (299,195);
+  \foreach \i/\n in {0/Next,1/Previous,2/{Add...},3/{Rename...},4/Delete}{
+    \node[itm] at (220,{210+\i*13}) {\n};
+  }
+  \node[ann] at (215,280) {Which worksheet is};
+  \node[ann] at (215,291) {on screen.};
+
+  \node[ann] at (0,320) {Layout, Data, Chart and Sheet have no keyboard
+                         shortcuts at all.};
+\end{tikzpicture}
+\caption{Every command on every menu}
+\label{fig:menumap}
+\end{ccfigure}
+
+Chapter~\ref{ch:cmdref} describes each of these thirty-four commands in detail.
+
+\section{What is not on the menus}
+
+There is no \menupath{Help}, no \menupath{View} and no \menupath{Format} menu.
+Formatting in particular has no home because there are no formatting commands to
+put in one --- see Chapter~\ref{ch:formats}.
+
+\begin{ccnote}
+The bar has not always had six menus on it. Earlier versions advertised
+\menupath{Cell}, \menupath{Sheet} and \menupath{Data} with nothing behind them,
+then dropped back to three that worked; \menupath{Data} and \menupath{Chart}
+returned when there was something to put in them, and \menupath{Layout} arrived
+to take the rows, the columns and the widths off \menupath{Edit} --- which is
+about editing again as a result. A menu appears here when it has commands, and
+not before.
+\end{ccnote}

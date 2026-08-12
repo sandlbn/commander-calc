@@ -1,0 +1,145 @@
+% ===========================================================================
+%  COMMANDER CALC -- Reference Manual
+%
+%  A spreadsheet for the Commander X16.
+%
+%  Build:  make        (see ./Makefile)
+%  Engine: pdflatex
+%
+%  Every figure in this manual is drawn in LaTeX. There is no \includegraphics
+%  and no external image file; the logo, the screen mock-ups, the memory map
+%  and the byte-layout diagrams are all TikZ, in style/.
+% ===========================================================================
+\documentclass[10pt,twoside,openright]{memoir}
+
+\usepackage{style/ccmanual}
+\input{style/cclogo}
+\input{style/ccscreen}
+
+\usepackage{makeidx}
+\makeindex
+
+\usepackage[
+  pdftitle={Commander Calc -- Reference Manual},
+  pdfsubject={A spreadsheet for the Commander X16},
+  pdfkeywords={Commander X16, spreadsheet, 65C02, VERA, CMDR-DOS},
+  colorlinks=false,
+  hidelinks,
+  hypertexnames=false,
+  plainpages=false,
+  bookmarksnumbered=true,
+  bookmarksopen=true,
+  bookmarksopenlevel=0
+]{hyperref}
+
+% Index letter headings, in the same Helvetica bold as everything else.
+\newcommand{\ccindexletter}[1]{%
+  \par\vspace{9pt}{\sffamily\bfseries\fontsize{10.5}{12}\selectfont #1}\par\vspace{2pt}}
+
+\begin{document}
+
+% =========================== FRONT MATTER =================================
+\frontmatter
+\pagestyle{empty}
+\ccthumbfalse
+
+\include{front/title}
+\include{front/colophon}
+
+\pagestyle{ccpage}
+\setccpart{Contents}
+
+\include{front/howto}
+
+\cleardoublepage
+\setlength{\cftbeforechapterskip}{6pt plus 1pt}
+\renewcommand{\cftchapterfont}{\sffamily\bfseries}
+\renewcommand{\cftchapterpagefont}{\sffamily\bfseries}
+\renewcommand{\cftsectionfont}{\normalfont}
+\renewcommand{\cftsubsectionfont}{\normalfont\fontsize{9}{11}\selectfont}
+\renewcommand{\cftsubsectionpagefont}{\normalfont\fontsize{9}{11}\selectfont}
+\tableofcontents*
+
+\cleardoublepage
+\listoffigures*
+
+% ============================ MAIN MATTER =================================
+\mainmatter
+% Figures and tables are numbered 3-1, not 3.1, to match the folios. This has
+% to be set here: \counterwithin, memoir and \appendix each install a dotted
+% form of their own, and the last word has to be ours.
+\renewcommand{\thefigure}{\thechapter-\arabic{figure}}
+\renewcommand{\thetable}{\thechapter-\arabic{table}}
+\pagenumbering{ccnum}
+\ccresetpagetrue
+\ccthumbtrue
+\pagestyle{ccpage}
+
+\ccpartpage{Part One}{Using Commander Calc}{%
+  How the program works and how to work it: the screen, the keyboard, entering
+  and editing data, the menus, files, worksheets and the commands that operate
+  on a whole block of rows at once. Read this part through once and you will
+  not need to read it again.}
+
+\setccpart{Using Commander Calc}
+\include{ch/01-introduction}
+\include{ch/02-installing}
+\include{ch/03-screen}
+\include{ch/04-moving}
+\include{ch/05-entering}
+\include{ch/06-editing}
+\include{ch/07-menus}
+\include{ch/08-files}
+\include{ch/09-import-export}
+\include{ch/10-worksheets}
+\include{ch/11-sorting}
+\include{ch/12-rows}
+\include{ch/13-finding}
+\include{ch/14-charting}
+
+\ccpartpage{Part Two}{Reference}{%
+  Every command, every key, every function, every message, arranged for
+  looking things up rather than for reading. Each entry stands on its own and
+  says what the program does, not what it ought to do.}
+
+\setccpart{Reference}
+\include{ch/15-command-reference}
+\include{ch/16-key-reference}
+\include{ch/17-formula-reference}
+\include{ch/18-function-reference}
+\include{ch/19-formats-dates}
+\include{ch/20-recalculation}
+\include{ch/21-messages}
+
+% ============================= APPENDICES =================================
+\appendix
+% \appendix reinstates a dotted \thefigure; ours uses a hyphen throughout.
+\renewcommand{\thefigure}{\thechapter-\arabic{figure}}
+\renewcommand{\thetable}{\thechapter-\arabic{table}}
+\ccpartpage{Appendices}{Technical Reference}{%
+  The numbers behind the program: what it can hold, what a workbook file
+  contains byte for byte, how a number is stored, and where the machine's
+  memory goes. Nothing here is needed to use \ccprod. All of it is needed to
+  trust it.}
+
+\setccpart{Appendices}
+\include{app/A-limits}
+\include{app/B-fileformat}
+\include{app/C-numbers}
+\include{app/D-memory}
+\include{app/E-files}
+\include{app/F-differences}
+\include{app/G-glossary}
+
+% ================================ INDEX ===================================
+\cleardoublepage
+\ccresetpagefalse
+\ccthumbfalse
+\setccpart{Index}
+\renewcommand{\thepage}{I-\arabic{page}}
+\setcounter{page}{1}
+\begin{small}
+\printindex
+\end{small}
+
+\end{document}

@@ -1,0 +1,532 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
+<title>Commander Calc - The Professional Spreadsheet for the Commander X16</title>
+<style type="text/css">
+    */
+body {
+  background: #ffffff;
+  color: #000000;
+  font-family: Arial, Helvetica, sans-serif;
+  font-size: 12px;
+  line-height: 1.45;
+  margin: 0;
+  padding: 0;
+}
+a         { color: #0000cc; }
+a:visited { color: #551a8b; }
+a:hover   { color: #cc0000; }
+
+.page {
+  width: 760px;
+  margin: 0 auto;
+  border-left: 1px solid #808080;
+  border-right: 1px solid #808080;
+}
+
+/* ---- masthead ---- */
+.masthead {
+  background: #000080;
+  padding: 14px 18px 12px 18px;
+  border-bottom: 3px solid #c0c0c0;
+}
+.masthead .logo { display: block; }
+.masthead .tag {
+  color: #ffff99;
+  font-size: 11px;
+  letter-spacing: 1.4px;
+  font-weight: bold;
+  margin-top: 8px;
+  text-transform: uppercase;
+}
+
+/* ---- nav bar of bevelled buttons ---- */
+.navbar {
+  background: #c0c0c0;
+  padding: 5px 8px;
+  border-bottom: 1px solid #808080;
+}
+.navbar a {
+  display: inline-block;
+  background: #c0c0c0;
+  border: 2px outset #dfdfdf;
+  padding: 2px 10px;
+  margin-right: 3px;
+  font-size: 11px;
+  font-weight: bold;
+  color: #000080;
+  text-decoration: none;
+}
+.navbar a:hover   { color: #000080; }
+.navbar a:active  { border-style: inset; }
+
+/* ---- body layout: content + sidebar, as a table would have done ---- */
+.body   { display: table; width: 100%; }
+.main   { display: table-cell; width: 545px; padding: 16px 18px; vertical-align: top; }
+.side   { display: table-cell; padding: 16px 12px; vertical-align: top;
+          background: #eeeeee; border-left: 1px solid #c0c0c0; }
+
+h1 { font-size: 17px; color: #000080; margin: 0 0 2px 0; }
+h2 { font-size: 13px; color: #000080; margin: 20px 0 4px 0;
+     border-bottom: 1px solid #c0c0c0; padding-bottom: 2px; }
+h3 { font-size: 12px; color: #000080; margin: 14px 0 3px 0; }
+p  { margin: 6px 0; }
+
+.lead { font-size: 12px; }
+.lead b { color: #000080; }
+
+ul { margin: 6px 0 6px 0; padding-left: 20px; }
+li { margin: 3px 0; }
+
+/* ---- the spec table ---- */
+table.spec {
+  border-collapse: collapse;
+  width: 100%;
+  font-size: 11px;
+  margin: 8px 0;
+}
+table.spec th {
+  background: #000080; color: #ffffff; text-align: left;
+  padding: 3px 6px; font-size: 11px;
+}
+table.spec td {
+  border-bottom: 1px solid #d0d0d0; padding: 3px 6px;
+}
+table.spec td.n { text-align: right; width: 130px; font-weight: bold; }
+table.spec tr:nth-child(even) td { background: #f4f4f4; }
+
+/* ---- screenshot ---- */
+.shot {
+  border: 2px inset #c0c0c0;
+  padding: 3px; background: #c0c0c0;
+  display: inline-block; margin: 8px 0 2px 0;
+}
+.shot img { display: block; width: 520px; height: auto; image-rendering: pixelated; }
+.caption { font-size: 10px; color: #444444; margin: 0 0 10px 0; }
+
+/* ---- sidebar ---- */
+.side h3 { margin-top: 0; font-size: 11px; text-transform: uppercase;
+           letter-spacing: 0.6px; }
+.side ul { padding-left: 16px; font-size: 11px; }
+.panel { background: #ffffff; border: 1px solid #c0c0c0; padding: 8px;
+         margin-bottom: 14px; }
+.dlbtn {
+  display: block; text-align: center; background: #c0c0c0;
+  border: 2px outset #dfdfdf; padding: 5px 4px; margin-bottom: 6px;
+  font-size: 11px; font-weight: bold; color: #000080; text-decoration: none;
+}
+.dlbtn:active { border-style: inset; }
+.reqs { font-size: 10px; color: #333333; }
+
+/* ---- footer ---- */
+.footer {
+  background: #c0c0c0; border-top: 1px solid #808080;
+  padding: 10px 18px; font-size: 10px; color: #333333;
+}
+.footer hr { border: 0; border-top: 1px solid #a0a0a0; margin: 6px 0; }
+.counter {
+  font-family: monospace; font-size: 11px; background: #000000;
+  color: #00ff00; padding: 1px 5px; border: 1px solid #808080;
+}
+/* ---- 88x31 web badges ----
+   Drawn here rather than fetched. The originals of this genre are mostly
+   corporate marks -- the Netscape N, the IE globe -- which this page has no
+   business wearing, and a hotlinked 1999 GIF is a broken image by next year.
+   88x31 with a 1px bevel is the format itself; the rest is lettering. */
+.badges { margin: 8px 0 4px 0; line-height: 0; }
+.badge {
+  display: inline-block; width: 88px; height: 31px;
+  border: 1px solid; border-color: #dfdfdf #808080 #808080 #dfdfdf;
+  margin: 0 4px 4px 0; vertical-align: top;
+}
+.badge svg { display: block; shape-rendering: crispEdges; }
+
+/* ---- under construction ---- */
+.uc {
+  margin: 10px 0 4px 0; border: 2px inset #c0c0c0; background: #ffffcc;
+  padding: 5px 8px; font-size: 11px; font-weight: bold; color: #663300;
+}
+.ucbar {
+  height: 10px; margin-top: 4px; border: 1px solid #808080;
+  background: repeating-linear-gradient(135deg,
+    #ffcc00 0 8px, #000000 8px 16px);
+  animation: crawl 1.2s linear infinite;
+}
+@keyframes crawl { from { background-position: 0 0; }
+                   to   { background-position: 22.6px 0; } }
+@media (prefers-reduced-motion: reduce) { .ucbar { animation: none; } }
+
+code, .mono { font-family: "Courier New", Courier, monospace; font-size: 11px; }
+pre {
+  background: #f4f4f4; border: 1px solid #c0c0c0; padding: 7px 9px;
+  font-family: "Courier New", Courier, monospace; font-size: 11px;
+  overflow-x: auto; margin: 6px 0;
+}
+</style>
+</head>
+<body>
+<div class="page">
+
+<!-- ================= masthead ================= -->
+<div class="masthead">
+<svg class="logo" width="430" height="72" viewBox="0 0 1600 250" role="img"
+     aria-label="Commander Calc">
+  <defs>
+    <clipPath id="cs">
+      <text x="600" y="196" font-family="Arial, Helvetica, sans-serif"
+            font-weight="800" font-size="170" letter-spacing="4">CALC</text>
+    </clipPath>
+  </defs>
+  <!-- spreadsheet symbol -->
+  <g transform="translate(90,18) scale(0.55)">
+    <rect x="0" y="0" width="390" height="380" rx="8" fill="none"
+          stroke="#ffffff" stroke-width="18"/>
+    <rect x="26" y="27" width="338" height="62" fill="#7d9dc0"/>
+    <rect x="26" y="27" width="72" height="326" fill="#ffffff"/>
+    <g stroke="#ffffff" stroke-width="9" fill="none">
+      <line x1="98" y1="27" x2="98" y2="353"/>
+      <line x1="187" y1="27" x2="187" y2="353"/>
+      <line x1="276" y1="27" x2="276" y2="353"/>
+      <line x1="26" y1="89" x2="364" y2="89"/>
+      <line x1="26" y1="155" x2="364" y2="155"/>
+      <line x1="26" y1="221" x2="364" y2="221"/>
+      <line x1="26" y1="287" x2="364" y2="287"/>
+    </g>
+    <rect x="187" y="155" width="89" height="66" fill="#7d9dc0"
+          stroke="#ffffff" stroke-width="9"/>
+  </g>
+  <!-- wordmark -->
+  <text x="600" y="72" font-family="Arial, Helvetica, sans-serif"
+        font-weight="700" font-size="54" letter-spacing="14"
+        fill="#ffffff">COMMANDER</text>
+  <line x1="600" y1="98" x2="1440" y2="98" stroke="#ffffff" stroke-width="6"/>
+  <g clip-path="url(#cs)">
+    <rect x="585" y="110" width="880" height="110" fill="#ffffff"/>
+    <rect x="585" y="123" width="880" height="8" fill="#000080"/>
+    <rect x="585" y="145" width="880" height="8" fill="#000080"/>
+    <rect x="585" y="167" width="880" height="8" fill="#000080"/>
+    <rect x="585" y="189" width="880" height="8" fill="#000080"/>
+  </g>
+</svg>
+<div class="tag">The Professional Spreadsheet for the Commander X16</div>
+</div>
+
+<!-- ================= nav ================= -->
+<div class="navbar">
+<a href="#overview">Overview</a>
+<a href="#features">Features</a>
+<a href="#screens">Screens</a>
+<a href="#specs">Specifications</a>
+<a href="#docs">Documentation</a>
+<a href="#download">Download</a>
+</div>
+
+<div class="body">
+<!-- ================= main column ================= -->
+<div class="main">
+
+<a name="overview"></a>
+<h1>Shouldn't your spreadsheet read the files everybody sends you?</h1>
+<p class="lead">
+The 6502 has been running spreadsheets since VisiCalc &#151; and every one of
+them has had the same trouble. Somebody sends you a workbook. You cannot open
+it. The figures get typed in again by hand, and typed in wrong.
+</p>
+<p class="lead">
+Suppose the budget is due Friday and the numbers arrive as an
+<code>.XLSX</code> file. <b>Now you can just open it.</b>
+</p>
+<p class="lead">
+<b>Commander Calc</b> reads and writes Microsoft Excel workbooks <i>right on
+the machine</i>. No converter. No host program. No serial cable. None of the
+usual excuses.
+</p>
+<p class="lead">
+And it is a full-function spreadsheet besides, in the line that runs back to
+1979. Sixteen worksheets. 65,535 rows. A formula engine with absolute
+references. Select a block, copy it, paste it. Find and replace. Bar, line and
+pie charts you can save to the card. All of it off an SD card, on a stock
+machine, needing nothing else whatsoever.
+</p>
+
+<a name="features"></a>
+<h2>Six reasons it belongs on your machine</h2>
+
+<h3>Your work goes where you go.</h3>
+<p>Here is the part nobody expected. Open a budget prepared this morning on a
+modern desktop. Work on it at 8 MHz. Hand it straight back. Import and export
+cover <code>.XLSX</code> and <code>.CSV</code>, and there is no step in the
+middle.</p>
+<p>In a hurry? Save it in the native <code>.X16S</code> format instead. A
+500-day price history opens in <b>seventeen seconds</b> &#151; against
+fifty-one for the same figures as a spreadsheet file. That is the difference
+between a coffee break and getting on with it.</p>
+<h3>Select. Copy. Paste. Done.</h3>
+<p>Press <b>Ctrl+A</b> and move the cursor. That's it &#151; that's the whole
+technique. Every movement key you already know grows the block: arrows, Page
+Up, Home, End, even a click of the mouse. Highlight a rectangle of any size
+anywhere on the sheet.</p>
+<p>Then take your pick. Copy it. Paste it somewhere else. Clear the lot with a
+single keystroke. What used to be a cell at a time is now one command, and
+you'll wonder how you worked without it.</p>
+<h3>Formulas that know where they've been.</h3>
+<p>Copy <code>=A1+B1</code> five rows down and two columns across, and
+Commander Calc hands you <code>=C6+D6</code> &#151; still adding the two cells
+above it, exactly where you meant it to. Down, across, both at once. The column
+letters carry properly, too: <b>Z</b> plus one is <b>AA</b>, every time.</p>
+<p>Need something to stay put? Type a <code>$</code> and it stays put.
+<code>=$A$1</code> never moves. <code>=$A1</code> moves its row only.
+<code>=A$1</code> moves its column only. What's more, the same rewriting runs
+when you insert a row, delete a row, sort, or undo a sort. Your formulas keep
+pointing at the numbers you meant.</p>
+<h3>Numbers you can bet the quarter on.</h3>
+<p>Every calculation goes through the machine's own 40-bit floating-point
+library. And if you ever build a formula that depends on itself, Commander Calc
+says so, plainly, instead of handing you a plausible-looking number and letting
+you take it into the meeting.</p>
+<h3>Ever lost an afternoon's work?</h3>
+<p>You won't lose one here. Every save is written to a temporary file, read
+back, and checked against a CRC-32 checksum <i>before</i> it is allowed to
+replace your workbook. Pull the plug in the middle of one &#151; go on, try it
+&#151; and yesterday's version is still sitting there, whole.</p>
+<p>And this is not an option buried in a preferences screen. It is simply how
+saving works.</p>
+<h3>Pictures that make the point.</h3>
+<p>Put the cursor on a column and choose Bars, Line or Pie. That is the entire
+procedure. Commander Calc reads down the column, takes the labels from the
+column beside it, and paints the result as <i>true graphics</i> on the VERA
+video processor &#151; sixteen colours, and a pie that is an honest circle.</p>
+<p>Then press <b>S</b>. Your chart is on the card as a standard Windows
+<code>.BMP</code> file that any paint program in the world will open. Try that
+on the machine you had last year.</p>
+<h3>And it all fits.</h3>
+<p>Under 30K stays in memory. That's it. The formula compiler, the evaluator,
+the reference rewriter, the spreadsheet reader, the spreadsheet writer, the
+DEFLATE decoder, the charting engine &#151; every one of them waits on the card
+in one of seventeen overlays and comes in only when you ask for it.</p>
+<p>Which means the memory stays where it belongs. In your worksheet.</p>
+<a name="screens"></a>
+<h2>See for yourself</h2>
+
+<div class="shot"><img src="screen-worksheet.png"
+  alt="The Commander Calc worksheet: menu bar, column and row headings, cell
+       cursor, worksheet tab and status line."></div>
+<p class="caption"><b>Figure 1.</b> Everything where you expect it: six menus
+across the top, headings that stay put while you scroll, worksheet tabs along
+the bottom &#151; and Commander Calc telling you exactly how much memory you
+have left to work in.</p>
+
+<div class="shot"><img src="screen-chart-pie.png"
+  alt="A pie chart of a household budget column, with a colour key naming each
+       slice and its share as a percentage."></div>
+<p class="caption"><b>Figure 2.</b> One column, one command, and there is your
+chart &#151; the key and its percentages taken straight from the column beside
+it. Press <b>S</b> and it is on the card as <code>CHART.BMP</code>, ready for
+the report.</p>
+
+<a name="specs"></a>
+<h2>The numbers behind the numbers</h2>
+<table class="spec">
+<tr><th colspan="2">Capacity</th></tr>
+<tr><td class="n">16</td><td>worksheets per workbook</td></tr>
+<tr><td class="n">65,535 &#215; 256</td><td>rows by columns (A through IV)</td></tr>
+<tr><td class="n">16,384</td><td>cells per worksheet</td></tr>
+<tr><td class="n">8,192</td><td>distinct text strings</td></tr>
+<tr><td class="n">128</td><td>cell styles</td></tr>
+<tr><td class="n">9</td><td>non-default column widths per sheet</td></tr>
+<tr><th colspan="2">Calculation</th></tr>
+<tr><td class="n">14</td><td>built-in functions</td></tr>
+<tr><td class="n">8</td><td>number formats</td></tr>
+<tr><td class="n">40-bit</td><td>floating point, via the machine's ROM library</td></tr>
+<tr><th colspan="2">Files</th></tr>
+<tr><td class="n">Read</td><td><code>.X16S</code> &nbsp; <code>.XLSX</code> &nbsp; <code>.CSV</code></td></tr>
+<tr><td class="n">Write</td><td><code>.X16S</code> &nbsp; <code>.XLSX</code> &nbsp; <code>.CSV</code> &nbsp; <code>.BMP</code> (charts)</td></tr>
+<tr><th colspan="2">Charting</th></tr>
+<tr><td class="n">3</td><td>chart types &#151; bar, line, pie</td></tr>
+<tr><td class="n">640 &#215; 240</td><td>chart resolution, 16 colours</td></tr>
+</table>
+
+<a name="docs"></a>
+<h2>Documentation</h2>
+<p>No thin pamphlet, either. The <b>Commander Calc Reference Manual</b> is the
+real thing &#151; every command, every key, every function, every message the
+program can put on screen, and the byte-by-byte layout of the file format
+itself. Written the way manuals used to be written, back when somebody expected
+you to read one.</p>
+<p><a href="commander-calc-manual.pdf"><b>Read the Reference Manual (PDF)</b></a></p>
+
+<a name="download"></a>
+<h2>Up and running in minutes</h2>
+<p>No installer. No configuration. No four-disk shuffle. Copy all eighteen
+files &#151; <code>CMDRCALC.PRG</code> and <code>OVL1.BIN</code> through
+<code>OVL17.BIN</code>, about 138K the lot &#151; into one directory of a
+CMDR-DOS-formatted card. Keep them together, on the one device. Then:</p>
+<pre>LOAD"CMDRCALC.PRG",8
+RUN</pre>
+<p>And that is genuinely all of it. Working under the emulator instead?</p>
+<pre>x16emu -rom rom.bin -fsroot . -prg CMDRCALC.PRG -run</pre>
+
+</div>
+
+<!-- ================= sidebar ================= -->
+<div class="side">
+
+<div class="panel">
+<h3>Get it today</h3>
+<a class="dlbtn" href="https://github.com/">Download Release 1.0</a>
+<a class="dlbtn" href="commander-calc-manual.pdf">Reference Manual (PDF)</a>
+<a class="dlbtn" href="https://github.com/">Source Code</a>
+<a class="dlbtn" href="CHART.BMP">Sample CHART.BMP</a>
+<div class="uc">
+UNDER CONSTRUCTION
+<div class="ucbar"></div>
+</div>
+<p class="reqs" style="margin-top:6px">Downloads are on their way &#151; check
+back shortly!</p>
+</div>
+
+<div class="panel">
+<h3>All you need</h3>
+<p class="reqs">
+Commander X16<br>
+512K banked RAM<br>
+<i>2MB recommended for large imports</i><br>
+80-column display<br>
+SD card or host filesystem<br>
+Mouse optional
+</p>
+</div>
+
+<div class="panel">
+<h3>New in this release!</h3>
+<ul>
+<li>Block selection, copy and paste</li>
+<li>Absolute references with <code>$</code></li>
+<li>Find and replace</li>
+<li>Insert and delete column</li>
+<li>Settable column widths</li>
+<li>Pie, bar and line charts, saved as <code>.BMP</code></li>
+</ul>
+</div>
+
+<div class="panel">
+<h3>At a glance</h3>
+<ul>
+<li>16 worksheets</li>
+<li>65,535 rows</li>
+<li>14 functions</li>
+<li>Block copy &amp; paste</li>
+<li>Find &amp; replace</li>
+<li>Excel import &amp; export</li>
+<li>Verified atomic saves</li>
+<li>Under 30K resident</li>
+</ul>
+</div>
+
+</div>
+</div>
+
+<!-- ================= footer ================= -->
+<div class="footer">
+<p>
+<b>Commander Calc</b>&#153; &#151; The Professional Spreadsheet for the
+Commander X16. Built with the <a href="https://cc65.github.io/">cc65</a>
+cross-development package. Requires no additional software.
+</p>
+<hr>
+<p>
+Commander Calc is an independent program for the Commander X16. It is not
+affiliated with, endorsed by, or derived from any commercial spreadsheet
+product. All trademarks are the property of their respective owners.
+</p>
+<div class="badges">
+
+<!-- ANY BROWSER: the period counter-campaign to the "enhanced for" badges,
+     and the only one of the genre that was never a company's mark. -->
+<span class="badge" title="Best viewed with any browser"><svg width="88" height="31" viewBox="0 0 88 31">
+  <rect width="88" height="31" fill="#000080"/>
+  <rect x="0" y="0" width="88" height="12" fill="#0000cc"/>
+  <text x="44" y="9" font-family="Arial,Helvetica,sans-serif" font-size="7"
+        fill="#ffffff" text-anchor="middle">BEST VIEWED WITH</text>
+  <text x="44" y="23" font-family="Arial,Helvetica,sans-serif" font-size="11"
+        font-weight="bold" fill="#ffff00" text-anchor="middle">ANY BROWSER</text>
+  <text x="44" y="29" font-family="Arial,Helvetica,sans-serif" font-size="5"
+        fill="#aaccff" text-anchor="middle"
+        textLength="82" lengthAdjust="spacingAndGlyphs">CAMPAIGN FOR A NON-BROWSER-SPECIFIC WWW</text>
+</svg></span>
+
+<!-- Powered by cc65: the real toolchain, named in the README too. -->
+<span class="badge" title="Built with the cc65 cross-development package"><svg width="88" height="31" viewBox="0 0 88 31">
+  <rect width="88" height="31" fill="#333333"/>
+  <rect x="0" y="0" width="30" height="31" fill="#66cc33"/>
+  <text x="15" y="14" font-family="Arial,Helvetica,sans-serif" font-size="10"
+        font-weight="bold" fill="#003300" text-anchor="middle">cc</text>
+  <text x="15" y="25" font-family="Arial,Helvetica,sans-serif" font-size="10"
+        font-weight="bold" fill="#003300" text-anchor="middle">65</text>
+  <text x="59" y="13" font-family="Arial,Helvetica,sans-serif" font-size="7"
+        fill="#cccccc" text-anchor="middle">POWERED BY</text>
+  <text x="59" y="25" font-family="Arial,Helvetica,sans-serif" font-size="9"
+        font-weight="bold" fill="#ffffff" text-anchor="middle">cc65</text>
+</svg></span>
+
+<!-- 65C02: the processor, in the style of the "Intel Inside" era knock-offs. -->
+<span class="badge" title="Runs on the WDC 65C02"><svg width="88" height="31" viewBox="0 0 88 31">
+  <rect width="88" height="31" fill="#e8e8e8"/>
+  <rect x="4" y="4" width="23" height="23" fill="#000000"/>
+  <g fill="#c0c0c0">
+    <rect x="1" y="8" width="3" height="2"/><rect x="1" y="14" width="3" height="2"/>
+    <rect x="1" y="20" width="3" height="2"/><rect x="27" y="8" width="3" height="2"/>
+    <rect x="27" y="14" width="3" height="2"/><rect x="27" y="20" width="3" height="2"/>
+  </g>
+  <text x="15.5" y="19" font-family="Arial,Helvetica,sans-serif" font-size="8"
+        font-weight="bold" fill="#00ff66" text-anchor="middle">65C</text>
+  <text x="59" y="13" font-family="Arial,Helvetica,sans-serif" font-size="9"
+        font-weight="bold" fill="#000080" text-anchor="middle">65C02</text>
+  <text x="59" y="24" font-family="Arial,Helvetica,sans-serif" font-size="7"
+        fill="#333333" text-anchor="middle">8 MEGAHERTZ</text>
+</svg></span>
+
+<!-- Hand coded, the honest version of "Made with Notepad". -->
+<span class="badge" title="Hand coded"><svg width="88" height="31" viewBox="0 0 88 31">
+  <rect width="88" height="31" fill="#ffffff"/>
+  <rect x="0" y="0" width="88" height="31" fill="none" stroke="#000000"/>
+  <text x="44" y="12" font-family="'Courier New',monospace" font-size="9"
+        fill="#000000" text-anchor="middle">&lt;/&gt; HAND CODED</text>
+  <text x="44" y="24" font-family="Arial,Helvetica,sans-serif" font-size="9"
+        font-weight="bold" fill="#cc0000" text-anchor="middle">HTML 4.01</text>
+</svg></span>
+
+<!-- 640x480: the resolution this page was laid out for, and the emulator's. -->
+<span class="badge" title="Best viewed at 640x480"><svg width="88" height="31" viewBox="0 0 88 31">
+  <rect width="88" height="31" fill="#008080"/>
+  <rect x="6" y="6" width="26" height="19" fill="#c0c0c0" stroke="#ffffff"/>
+  <rect x="9" y="9" width="20" height="11" fill="#000080"/>
+  <text x="60" y="14" font-family="Arial,Helvetica,sans-serif" font-size="9"
+        font-weight="bold" fill="#ffffff" text-anchor="middle">640x480</text>
+  <text x="60" y="24" font-family="Arial,Helvetica,sans-serif" font-size="7"
+        fill="#ccffff" text-anchor="middle">OR BETTER</text>
+</svg></span>
+
+<!-- Y2K: 1999's badge of badges. Ours is a joke with a true premise -- the
+     date serial is days since 1899-12-30, so 2000 is not a special year. -->
+<span class="badge" title="Y2K compliant"><svg width="88" height="31" viewBox="0 0 88 31">
+  <rect width="88" height="31" fill="#000000"/>
+  <text x="44" y="13" font-family="Arial,Helvetica,sans-serif" font-size="12"
+        font-weight="bold" fill="#00ff00" text-anchor="middle">Y2K READY</text>
+  <text x="44" y="25" font-family="Arial,Helvetica,sans-serif" font-size="6.5"
+        fill="#00aa00" text-anchor="middle">4-DIGIT YEARS SINCE 1899</text>
+</svg></span>
+
+</div>
+
+<p>
+This site is best viewed with a web browser. &nbsp;
+Visitors: <span class="counter">00013378</span> &nbsp;
+Last updated: 11 August 2026
+</p>
+</div>
+
+</div>
+</body>
+</html>

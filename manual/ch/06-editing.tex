@@ -1,0 +1,162 @@
+\chapter{Editing}
+\label{ch:editing}
+
+\section{Changing a cell without retyping it}
+\index{editing a cell}\index{F2 key}
+
+Press \key{F2}, or choose \menupath{Edit > Edit cell}.
+
+The status line changes to \msg{EDIT}, the formula bar changes colour, and the
+cell's existing contents appear on it with the insertion point at the end. From
+there you can move about and change what is there rather than replacing it.
+
+What appears is the cell's \emph{contents}, not its display: a formula cell
+gives you the formula, and a number formatted as \lit{\$8.50} gives you
+\lit{8.5}.
+
+\section{The edit keys}
+\index{keys!editing}
+
+\begin{cctable}{Key}{Effect}{1.55in}{3.27in}
+\key{$\leftarrow$} & Insertion point left one character \\
+\key{$\rightarrow$} & Insertion point right one character \\
+\key{Home} & To the start of the line \\
+\key{End} & To the end of the line \\
+\key{Backspace} & Delete the character to the left \\
+\key{Delete} & Delete the character under the insertion point \\
+Any printable key & Insert that character \\
+\key{Return}, \key{Tab}, \keyc{Shift}{Tab}, \key{$\uparrow$}, \key{$\downarrow$} &
+Store the entry and move \\
+\key{Esc} & Abandon the entry \\
+\end{cctable}
+
+Any other key is ignored, and you stay in \msg{EDIT}. Nothing you can press by
+accident will drop you out of an edit half-finished.
+
+The insertion point is shown by one highlighted character on the formula bar.
+If the entry is longer than the sixty-eight characters the bar can show, the bar
+scrolls sideways to keep the insertion point visible.
+
+\section{Undo}
+\index{undo}
+
+Press \key{F5}, or choose \menupath{Edit > Undo}.
+
+\menupath{Undo} restores the last single cell that changed --- the value it had
+before your last entry or clear.
+
+\begin{cccaution}
+Undo is one cell and one level deep, and \emph{undoing is not itself
+undoable}. Press \key{F5} twice and the second press does not put things back
+the way they were before the first; there is nothing to restore.
+
+Undo does not reach a pasted block, a cleared block, a sort, an inserted or
+deleted row or column, an import, or a file that has been opened over the top
+of your work. Sorting has its own undo --- see Chapter~\ref{ch:sorting} ---
+and the others cannot be taken back at all.
+\end{cccaution}
+
+\section{Copying and pasting}
+\index{copy}\index{paste}\index{clipboard}
+
+\begin{cctable}{Key}{Command}{1.55in}{3.27in}
+\keyc{Ctrl}{A} & \menupath{Edit > Select} --- start or drop a block \\
+\keyc{Ctrl}{C} & \menupath{Edit > Copy} --- copies the block, or the current
+cell \\
+\keyc{Ctrl}{V} & \menupath{Edit > Paste} --- pastes with the cursor at the
+top-left corner \\
+\end{cctable}
+
+Copying takes what the formula bar would show for each cell --- the formula, or
+the unformatted number, or the text --- and pasting enters those into the sheet
+as though you had typed them, with the cursor cell as the top-left corner of
+what arrives. \ccprod{} says \msg{Copied} when it has taken the block.
+
+To copy one cell, copy with no block marked. To copy a rectangle, mark it
+first: see \hyperref[sec:selecting]{Selecting a block} below.
+
+\begin{ccsteps}
+\item \textbf{The format does not travel.} A cell displaying \lit{\$8400.00}
+copied elsewhere arrives as \lit{8400}, in General format. The number is right;
+the currency is not.
+\item \textbf{References \emph{do} travel.} A pasted formula is rewritten by
+the distance the block moved --- see below.
+\item \textbf{A paste cannot be undone.} \key{F5} restores one cell, and a
+block is not one cell.
+\end{ccsteps}
+
+The clipboard survives moving between worksheets, so a block can be copied from
+one sheet and pasted into another. It does not survive quitting.
+
+\section{Selecting a block}
+\label{sec:selecting}
+\index{block!selecting}\index{selection}
+
+Press \keyc{Ctrl}{A}, or choose \menupath{Edit > Select}. That anchors one
+corner of the block at the cursor. Now move the cursor: the block grows to
+whatever rectangle lies between the anchor and wherever you go.
+
+\textbf{Every movement key extends the selection} --- the arrow keys,
+\key{PgUp} and \key{PgDn}, \key{Home}, \key{End}, and a click of the mouse.
+There is nothing new to learn, because the keys are the ones from
+Chapter~\ref{ch:moving}.
+
+The anchor may end up below and to the right of the cursor; it makes no
+difference, and the block is the rectangle between them either way.
+
+\begin{cctable}{To}{Press}{2.4in}{2.42in}
+Start a block & \keyc{Ctrl}{A} \\
+Grow or shrink it & Any movement key \\
+Drop it & \keyc{Ctrl}{A} again, or \key{Esc} \\
+Copy it & \keyc{Ctrl}{C} \\
+Clear it & \key{Del} \\
+\end{cctable}
+
+A command that acts on ``the selection'' acts on the current cell when there is
+no block, so \keyc{Ctrl}{C} and \key{Del} need no block to be useful.
+
+\section{What happens to formulas}
+\index{formulas!adjusted on paste}\index{references!relative}
+
+A pasted formula does not arrive unchanged. Its references move by the same
+distance the block did, in both directions at once.
+
+Copy \fml{=A1+B1} five rows down and two columns across, and what lands is
+\fml{=C6+D6} --- which is still the two cells above it, exactly as it was
+before. Column letters carry properly: one column right of \cellref{Z} is
+\cellref{AA}.
+
+To stop a reference moving, write a \lit{\$} in front of the part that should
+stay:
+
+\begin{cctable}{Written}{When the formula is copied}{1.4in}{3.42in}
+\fml{A1} & Both the column and the row move \\
+\fml{\$A1} & The column stays at \cellref{A}; the row moves \\
+\fml{A\$1} & The row stays at 1; the column moves \\
+\fml{\$A\$1} & Neither moves --- always \cellref{A1} \\
+\end{cctable}
+
+That is the ordinary spreadsheet rule, and it is what makes a column of totals
+worth copying rather than retyping: put \fml{=B2*\$C\$1} in one cell, copy it
+down the column, and every row multiplies its own \cellref{B} by the one rate
+in \cellref{C1}.
+
+\begin{ccnote}
+The same rewriting runs when a formula is carried along by anything else that
+moves it: inserting a row, deleting a row, sorting, and undoing a sort.
+Chapter~\ref{ch:rows} and Chapter~\ref{ch:sorting} describe those.
+
+Two things are deliberately left alone. A reference that names another sheet
+--- \fml{Q1!B5} --- is never rewritten, and neither is any formula longer than
+128 characters, which is skipped whole rather than half-adjusted.
+\end{ccnote}
+
+\section{Clearing}
+
+\key{Backspace} or \key{Delete} in \msg{READY}, or \menupath{Edit > Clear},
+empties the current cell --- or the whole block, if one is marked.
+
+A cleared cell is genuinely empty, not zero. In a range, \fn{SUM} and
+\fn{AVERAGE} skip it rather than counting it as nothing. Read on its own by a
+formula, though, an empty cell reads as zero --- \fml{=Z90+1} is 1.
+Chapter~\ref{ch:formularef} sets out the distinction.

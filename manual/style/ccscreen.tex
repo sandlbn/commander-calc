@@ -1,0 +1,118 @@
+% ---------------------------------------------------------------------------
+% ccscreen.tex -- character-cell screen mock-ups, drawn in TikZ
+%
+% Everything the manual shows of the display is built out of character cells
+% on the same 80-column geometry the program uses, in the Commander X16's own
+% palette. A cell is \ccchw wide and \ccchh tall; the picture's coordinate
+% system is one unit per cell with the origin at the top left, so a figure can
+% be written with the same row and column numbers the code uses.
+%
+% Spaces inside text fragments must be written ~ , which is exactly one cell
+% wide in a monospaced font and does not collapse the way a run of ordinary
+% spaces would.
+% ---------------------------------------------------------------------------
+
+\newlength{\ccchw}      % width of one character cell
+\newlength{\ccchh}      % height of one character cell
+\newlength{\ccscrfs}    % font size used inside the cells
+
+% Scale factor 1 gives a full 80-column screen just inside the type block.
+\newcommand{\ccscreenscale}[1]{%
+  \setlength{\ccchw}{#1\dimexpr 4.2pt\relax}%
+  \setlength{\ccchh}{#1\dimexpr 5.4pt\relax}%
+  \setlength{\ccscrfs}{#1\dimexpr 7.0pt\relax}%
+}
+\ccscreenscale{1}
+
+% The X16 attribute byte is (background << 4) | foreground. These are the
+% combinations the program actually uses, named as the source names them.
+\newcommand{\ccattr}[1]{\csname ccattr@#1\endcsname}
+\expandafter\def\csname ccattr@menu@bg\endcsname{x16lgrey}
+\expandafter\def\csname ccattr@menu@fg\endcsname{x16black}
+
+\newcommand{\ccscreenbegin}[2]{%
+  \begin{tikzpicture}[x=\ccchw,y=-\ccchh,
+      cctxt/.style={anchor=base west,inner sep=0pt,outer sep=0pt,
+                    font=\ttfamily\fontsize{\the\ccscrfs}{\the\ccscrfs}\selectfont}]
+    \def\ccscrcols{#1}\def\ccscrrows{#2}%
+    % Clip to the screen. The real display has the same edge: a column that
+    % starts before column 80 and runs past it is cut off there rather than
+    % being left out, and text is never allowed to leave its cell.
+    \clip (0,0) rectangle (#1,#2);
+    % the paper: every cell starts white, as screen_clear leaves it
+    \fill[x16white] (0,0) rectangle (#1,#2);
+}
+\newcommand{\ccscreenend}{%
+    \draw[ccink,line width=0.7pt] (0,0) rectangle (\ccscrcols,\ccscrrows);
+  \end{tikzpicture}%
+}
+
+% --- fills -----------------------------------------------------------------
+% \ccfill{row}{col}{width}{colour}
+\newcommand{\ccfill}[4]{\fill[#4] (#2,#1) rectangle ++(#3,1);}
+% \ccfillrow{row}{colour}
+\newcommand{\ccfillrow}[2]{\fill[#2] (0,#1) rectangle ++(\ccscrcols,1);}
+% \ccfillbox{row}{col}{width}{height}{colour}
+\newcommand{\ccfillbox}[5]{\fill[#5] (#2,#1) rectangle ++(#3,#4);}
+
+% --- text ------------------------------------------------------------------
+% The baseline sits 0.78 of a cell down, which is where a character sits in an
+% 8-pixel tile.
+% \cctext{row}{col}{colour}{text}
+\newcommand{\cctext}[4]{%
+  \node[cctxt,text=#3,yshift=0.22\ccchh] at (#2,\the\numexpr#1+1\relax) {#4};}
+
+% \cctextr{row}{col}{width}{colour}{text} -- right-aligned in col..col+width-1
+\newcommand{\cctextr}[5]{%
+  \node[cctxt,anchor=base east,text=#4,yshift=0.22\ccchh]
+    at (\the\numexpr#2+#3\relax,\the\numexpr#1+1\relax) {#5};}
+
+% --- worksheet geometry ----------------------------------------------------
+% GRID_ROWHDR_W is 6: five digits of row number and one separator column.
+% Columns are X16S_DEF_COL_W = 10 cells wide unless a file says otherwise.
+\newcommand{\ccgridx}[1]{\the\numexpr 6+10*(#1)\relax}
+
+% \ccrowhdr{row}{label}{fg}{bg} -- the row-number gutter
+\newcommand{\ccrowhdr}[4]{%
+  \ccfill{#1}{0}{6}{#4}%
+  \cctextr{#1}{0}{5}{#3}{#2}}
+
+% \cccellL{row}{colindex}{fg}{text} -- a left-aligned cell value
+\newcommand{\cccellL}[4]{\cctext{#1}{\ccgridx{#2}}{#3}{~#4}}
+% \cccellR{row}{colindex}{fg}{text} -- a right-aligned cell value
+\newcommand{\cccellR}[4]{\cctextr{#1}{\ccgridx{#2}}{10}{#3}{#4}}
+
+% \cccursor{row}{colindex} -- the cell cursor, C_CURSOR is reverse video
+\newcommand{\cccursor}[2]{\ccfill{#1}{\ccgridx{#2}}{10}{x16black}}
+
+% \cccolhdr{row}{colindex}{letter}{selected?}
+% The branch is taken outside \ccfill: a conditional left inside a TikZ option
+% list is expanded while the key parser is picking the argument apart, and
+% that goes wrong in ways that are not worth debugging twice.
+\newcommand{\cccolhdr}[4]{%
+  \ifnum#4=1\relax
+    \ccfill{#1}{\ccgridx{#2}}{10}{x16yellow}%
+  \else
+    \ccfill{#1}{\ccgridx{#2}}{10}{x16lgrey}%
+  \fi
+  \cctext{#1}{\ccgridx{#2}}{x16black}{~#3}}
+
+% --- callouts --------------------------------------------------------------
+% A label outside the artwork with a hairline leader to a point on it, the way
+% every screen figure in a manual of this period is annotated.
+% \cccallout[anchor]{label}{label coord}{target coord}
+% Both coordinates are written with their own parentheses, so that a named
+% node or a calc expression can be used as freely as a pair of numbers.
+\newcommand{\cccallout}[4][west]{%
+  \draw[ccink,line width=0.4pt] #3 -- #4;
+  \fill[ccink] #4 circle (0.4);
+  \node[anchor=#1,inner sep=2.5pt,
+        font=\sffamily\fontsize{7.4pt}{8.6pt}\selectfont,text=ccink,align=left] at #3 {#2};}
+
+% --- dialogue boxes --------------------------------------------------------
+% DLG_X is 12 and DLG_W is 52, so every dialogue in the program occupies
+% columns 12 to 63. The title row is C_TITLE, the body C_DLG.
+\newcommand{\ccdlgbox}[3]{%
+  \ccfill{#1}{12}{52}{x16blue}%
+  \cctext{#1}{14}{x16white}{#3}%
+  \ccfillbox{\the\numexpr#1+1\relax}{12}{52}{\the\numexpr#2-1\relax}{x16lgrey}}

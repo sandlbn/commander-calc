@@ -1,0 +1,69 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="520" viewBox="0 0 1600 520" role="img" aria-labelledby="title desc">
+  <title id="title">Commander Calc logo</title>
+  <desc id="desc">A restrained late-1980s technical-computing logo with a spreadsheet grid symbol and striped Commander Calc wordmark.</desc>
+
+  <defs>
+    <style>
+      .ink { fill: #111820; }
+      .blue { fill: #244f77; }
+      .rule { stroke: #111820; stroke-width: 8; }
+      .thin { stroke: #111820; stroke-width: 5; }
+      .grid { stroke: #111820; stroke-width: 7; fill: none; }
+      .small { font-family: "DejaVu Sans", "Liberation Sans", sans-serif; font-weight: 700; letter-spacing: 14px; }
+      .large { font-family: "DejaVu Sans", "Liberation Sans", sans-serif; font-weight: 800; letter-spacing: 4px; }
+    </style>
+    <clipPath id="calc-stripes">
+      <text x="600" y="370" class="large" font-size="250">CALC</text>
+    </clipPath>
+  </defs>
+
+  <!-- Spreadsheet symbol -->
+  <g transform="translate(90,70)">
+    <rect x="0" y="0" width="390" height="380" rx="8" fill="none" stroke="#111820" stroke-width="14"/>
+    <rect x="26" y="27" width="338" height="326" fill="none" stroke="#111820" stroke-width="7"/>
+    <rect x="26" y="27" width="338" height="62" class="blue"/>
+    <rect x="26" y="27" width="72" height="326" class="ink"/>
+
+    <!-- grid -->
+    <line x1="98" y1="27" x2="98" y2="353" class="grid"/>
+    <line x1="187" y1="27" x2="187" y2="353" class="grid"/>
+    <line x1="276" y1="27" x2="276" y2="353" class="grid"/>
+    <line x1="26" y1="89" x2="364" y2="89" class="grid"/>
+    <line x1="26" y1="155" x2="364" y2="155" class="grid"/>
+    <line x1="26" y1="221" x2="364" y2="221" class="grid"/>
+    <line x1="26" y1="287" x2="364" y2="287" class="grid"/>
+
+    <!-- header marks -->
+    <rect x="125" y="53" width="34" height="10" fill="#fff"/>
+    <rect x="214" y="53" width="34" height="10" fill="#fff"/>
+    <rect x="303" y="53" width="34" height="10" fill="#fff"/>
+    <rect x="50" y="112" width="24" height="9" fill="#fff"/>
+    <rect x="50" y="178" width="24" height="9" fill="#fff"/>
+    <rect x="50" y="244" width="24" height="9" fill="#fff"/>
+    <rect x="50" y="310" width="24" height="9" fill="#fff"/>
+
+    <!-- active cell -->
+    <rect x="187" y="155" width="89" height="66" fill="#244f77"/>
+    <rect x="187" y="155" width="89" height="66" fill="none" stroke="#111820" stroke-width="7"/>
+  </g>
+
+  <!-- Wordmark -->
+  <g>
+    <text x="600" y="150" class="small ink" font-size="78">COMMANDER</text>
+    <line x1="600" y1="185" x2="1495" y2="185" class="rule"/>
+
+    <!-- striped CALC, evoking period technical branding without copying a trademark -->
+    <g clip-path="url(#calc-stripes)">
+      <rect x="585" y="205" width="930" height="180" class="ink"/>
+      <rect x="585" y="222" width="930" height="12" fill="#fff"/>
+      <rect x="585" y="252" width="930" height="12" fill="#fff"/>
+      <rect x="585" y="282" width="930" height="12" fill="#fff"/>
+      <rect x="585" y="312" width="930" height="12" fill="#fff"/>
+      <rect x="585" y="342" width="930" height="12" fill="#fff"/>
+    </g>
+
+    <line x1="600" y1="414" x2="1495" y2="414" class="thin"/>
+    <text x="604" y="462" font-family="DejaVu Sans, Liberation Sans, sans-serif" font-size="34" font-weight="600" letter-spacing="8" fill="#111820">SPREADSHEET FOR COMMANDER X16</text>
+  </g>
+</svg>

@@ -1,0 +1,157 @@
+\chapter{How Numbers Are Stored}
+\label{app:numbers}
+
+\section{The format}
+\index{numbers!representation}
+
+A number in \ccprod{} occupies five bytes and is binary floating point --- not
+fixed point, not binary-coded decimal, and not a scaled integer.
+
+The format is the one the Commander X16's ROM arithmetic library uses. That is
+the whole reason for the choice: an addition costs a jump into ROM bank 4
+rather than a software floating-point library that would not fit in the program.
+
+\begin{ccfigure}
+\begin{tikzpicture}[x=1pt,y=-1pt,
+  by/.style={draw=ccink,line width=0.7pt,minimum height=22pt,inner sep=2pt,
+             font=\ttfamily\fontsize{8}{9.5}\selectfont},
+  num/.style={font=\sffamily\fontsize{6.8}{8}\selectfont,text=ccink,anchor=south},
+  ann/.style={font=\sffamily\fontsize{7.4}{9}\selectfont,text=ccink}]
+
+  \node[by,fill=black!14,minimum width=62pt] (e) at (31,12) {exponent};
+  \node[by,fill=black!30,minimum width=16pt] (s) at (70,12) {s};
+  \node[by,minimum width=46pt]  (m1) at (101,12) {};
+  \node[by,minimum width=62pt]  (m2) at (155,12) {};
+  \node[by,minimum width=62pt]  (m3) at (217,12) {};
+  \node[by,minimum width=62pt]  (m4) at (279,12) {};
+
+  \node[num] at (31,-1)  {byte 0};
+  \node[num] at (93,-1) {byte 1};
+  \node[num] at (155,-1) {byte 2};
+  \node[num] at (217,-1) {byte 3};
+  \node[num] at (279,-1) {byte 4};
+
+  \draw[ccink,line width=0.5pt] (62,26) -- (62,33) -- (310,33) -- (310,26);
+  \node[ann,anchor=north] at (186,34) {mantissa, 32 bits, most significant
+    first, leading 1 implicit};
+
+  \node[ann,anchor=north west] at (0,52)
+    {byte 0 \quad exponent, biased by 128. \textbf{Zero means the value is
+     exactly zero.}};
+  \node[ann,anchor=north west] at (0,66)
+    {bit s \quad\ \ the sign, 1 for negative. It sits where the mantissa's
+     always-1 leading bit would be.};
+  \node[ann,anchor=north west] at (0,80)
+    {value \quad\ \ $\pm\,0.1mmmm\ldots{}_2 \times 2^{\,(\mathrm{exponent}-128)}$};
+\end{tikzpicture}
+\caption{The five bytes of a number}
+\label{fig:mbf}
+\end{ccfigure}
+
+Three worked examples:
+
+\begin{cctable}{Value}{Bytes}{1.4in}{3.42in}
+1.0 & \lit{81 00 00 00 00} \\
+5.0 & \lit{83 20 00 00 00} \\
+9.81 & \lit{84 1C F5 C2 8F} \\
+\end{cctable}
+
+\section{Range and precision}
+
+\begin{cctable}{Property}{Value}{2.4in}{2.42in}
+Significant decimal digits & about 9 \\
+Largest magnitude & just under $2^{127}$, about $1.70 \times 10^{38}$ \\
+Smallest non-zero magnitude & about $2.94 \times 10^{-39}$ \\
+Infinity & does not exist \\
+Not-a-number & does not exist \\
+Negative zero & does not exist \\
+Underflow & silently becomes exactly zero \\
+\end{cctable}
+
+Nine digits is the honest figure. Thirty-two mantissa bits are worth about 9.6
+decimal digits, and the display and the program's own tests both treat nine as
+the number that can be relied on.
+
+\begin{cccaution}
+\textbf{Large integers are not exact.} A figure like a share volume of
+7,443,220,000 has more significant digits than the format can hold, and lands
+on a neighbouring value --- it will come back looking like a transcription
+error. The remedy is to scale: store volumes in thousands, money in whole
+units, and let a number format put the zeros back.
+\end{cccaution}
+
+\section{Binary, not decimal}
+
+\begin{ccnote}
+This is binary floating point, so 0.1 plus 0.2 behaves the way it behaves
+everywhere else: the result is very slightly not 0.3, and
+\fml{=A1+A2=0.3} can be \msg{FALSE} when the cells display \lit{.1} and
+\lit{.2}.
+
+Number formats round on display, so a column of money \emph{looks} right; and
+\fn{ROUND} in a formula makes the value itself right. Comparing two computed
+values for exact equality is the thing to avoid. Compare a difference against a
+tolerance instead: \fml{=ABS(A1-A2)<0.001}.
+\end{ccnote}
+
+\section{Overflow, and why the checks are strict}
+
+\begin{ccnote}
+The ROM's arithmetic library handles overflow and division by zero by jumping
+into BASIC's error handler --- and there is no return from that. BASIC would
+print its own error, drop to \msg{READY}, and your unsaved workbook would be
+gone.
+
+So \ccprod{} range-checks every operation \emph{before} calling the ROM, from
+the exponent bytes alone. The checks are deliberately conservative: they may
+refuse one value right at the very top of the range that would in fact have
+fitted. A spurious \errv{\#NUM!} on an absurd number costs nothing. A crash
+costs the workbook.
+\end{ccnote}
+
+\begin{cctable}{Operation}{Refused when}{1.35in}{3.47in}
+Add, subtract & Either operand has the maximum exponent --- magnitude
+$8.5\times10^{37}$ or more --- even if the result would fit \\
+Multiply & The exponents sum past the top of the range \\
+Divide & The divisor is zero (\errv{\#DIV/0!}), or the quotient would overflow \\
+Power & Zero to a negative power (\errv{\#DIV/0!}); a negative base with a
+fractional exponent (\errv{\#NUM!}) \\
+\fn{MOD} & The divisor is zero \\
+\end{cctable}
+
+$x^0$ is 1, including $0^0$.
+
+\section{Rounding}
+
+\begin{cctable}{Operation}{Rounds}{2.0in}{2.82in}
+Arithmetic & In the ROM, using a 40-bit accumulator and a guard byte \\
+\fn{ROUND}, and every number format & Half away from zero: 2.5 to 3, $-2.5$ to
+$-3$. Not banker's rounding \\
+\fn{INT} & Down, towards minus infinity: $-2.7$ to $-3$ \\
+Conversion to a whole number & Towards zero \\
+\end{cctable}
+
+\section{Reading a typed number}
+
+At most \textbf{eleven} significant digits are taken into the mantissa. Further
+integer digits still scale the magnitude; further fraction digits are discarded.
+
+A decimal exponent below $-300$ gives \errv{\#NUM!}. The decimal scaling is
+applied one factor of ten at a time through the same guarded multiply and
+divide, so \lit{1E999} reports \errv{\#NUM!} rather than crashing the machine.
+
+\section{Writing a number out}
+
+In General format the number goes through the ROM's own formatter, with the
+leading space that CBM machines reserve for a sign stripped off.
+
+\begin{cctable}{Value}{Displays as}{1.6in}{3.22in}
+0 & \lit{0} \\
+8.50 & \lit{8.5} --- trailing zeros are not kept \\
+1/3 & \lit{.333333333} --- no leading zero \\
+$-0.5$ & \lit{-.5} \\
+$1.2\times10^{15}$ & \lit{1.2E+15} \\
+\end{cctable}
+
+Scientific notation takes over at a thousand million and above, and below one
+hundredth. The buffer for a formatted number is 24 bytes.

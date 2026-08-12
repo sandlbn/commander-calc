@@ -1,0 +1,231 @@
+\chapter{The .X16S File Format}
+\label{app:fileformat}
+
+This appendix describes \ccprod's native workbook format precisely enough to
+write a reader for it. Nothing here is needed to use the program.
+
+All integers are little-endian, fixed width, with no alignment and no padding.
+
+\section{The envelope}
+
+\begin{ccfigure}
+\resizebox{\linewidth}{!}{%
+\begin{tikzpicture}[x=1pt,y=-1pt,
+  fld/.style={draw=ccink,line width=0.6pt,minimum height=17pt,inner sep=2pt,
+              font=\ttfamily\fontsize{7.6}{9}\selectfont,anchor=west},
+  hd/.style={fld,fill=black!12},
+  ann/.style={font=\sffamily\fontsize{7}{8.6}\selectfont,text=ccink,
+              anchor=north}]
+  \def\y{0}
+  \node[hd,minimum width=44pt]  (a) at (0,\y)   {"X16S"};
+  \node[hd,minimum width=40pt]  (b) at (44,\y)  {ver};
+  \node[hd,minimum width=40pt]  (c) at (84,\y)  {flags};
+  \node[fld,minimum width=48pt] (d) at (124,\y) {SHNM};
+  \node[fld,minimum width=44pt] (e) at (172,\y) {STYL};
+  \node[fld,minimum width=44pt] (f) at (216,\y) {STRS};
+  \node[fld,minimum width=44pt] (g) at (260,\y) {COLW};
+  \node[fld,minimum width=42pt] (h) at (304,\y) {CELS};
+  \node[fld,minimum width=38pt] (i) at (346,\y) {META};
+  \node[hd,minimum width=38pt]  (j) at (384,\y) {"END "};
+  \node[hd,minimum width=44pt]  (k) at (422,\y) {CRC-32};
+
+  \node[ann] at (22,12)  {4};
+  \node[ann] at (64,12)  {2};
+  \node[ann] at (104,12) {2};
+  \node[ann] at (148,12) {chunk};
+  \node[ann] at (194,12) {chunk};
+  \node[ann] at (238,12) {chunk};
+  \node[ann] at (282,12) {chunk};
+  \node[ann] at (325,12) {chunk};
+  \node[ann] at (365,12) {chunk};
+  \node[ann] at (403,12) {chunk};
+  \node[ann] at (444,12) {4};
+
+  \draw[ccink,line width=0.5pt] (0,34) -- (0,40) -- (422,40) -- (422,34);
+  \node[font=\sffamily\fontsize{7}{8.6}\selectfont,text=ccink,anchor=north]
+    at (211,41) {the CRC is computed over everything before it};
+\end{tikzpicture}}
+\caption{The layout of a \fname{.X16S} file}
+\label{fig:x16slayout}
+\end{ccfigure}
+
+\begin{cctablethree}{Offset}{Size}{Field}{0.75in}{0.6in}{3.45in}
+0 & 4 & Magic, the four bytes \lit{X16S} \\
+4 & 2 & Version. Currently 3. A higher number is refused with
+\msg{Damaged or unrecognised file}. \\
+6 & 2 & Flags. Always written as 0; read and discarded. \\
+8 & \ldots & The chunks, in the order shown above \\
+\ldots & 8 & The terminating chunk: tag \lit{END\ } and length 0 \\
+\ldots & 4 & CRC-32 of every byte before this field \\
+\end{cctablethree}
+
+\section{Chunks}
+
+Every chunk has the same three-part shape:
+
+\begin{cctablethree}{Offset}{Size}{Field}{0.75in}{0.6in}{3.45in}
+0 & 4 & Four-character tag \\
+4 & 4 & Length of the payload, not counting these eight bytes \\
+8 & \emph{length} & Payload \\
+\end{cctablethree}
+
+\textbf{A reader must skip a chunk whose tag it does not know} rather than
+rejecting the file. That is the point of the framing, and it is what lets a
+later version of \ccprod{} add to the format without breaking this one.
+
+Chunks are written in a fixed order, and a reader may rely on \lit{STRS}
+preceding \lit{CELS}, because a text cell names its string by an identifier
+assigned in \lit{STRS}.
+
+\subsection{SHNM --- worksheet names}
+
+The names, NUL-terminated, one after another, in worksheet order. Each is at
+most 31 characters plus its terminator.
+
+\subsection{STYL --- number formats}
+
+\begin{cctablethree}{Offset}{Size}{Field}{0.75in}{0.6in}{3.45in}
+0 & 2 & Count of style records \\
+2 & 5 each & The style records \\
+\end{cctablethree}
+
+Each record is five bytes:
+
+\begin{cctablethree}{Offset}{Size}{Field}{0.75in}{0.6in}{3.45in}
+0 & 1 & Number format: 0 General, 1 Integer, 2 Decimal, 3 Currency, 4 Percent,
+5 Date, 6 Time, 7 Text \\
+1 & 1 & Foreground colour \\
+2 & 1 & Background colour \\
+3 & 1 & Flags: bit 0 bold; bits 1--2 alignment (0 automatic, 1 left, 2 right,
+3 centre) \\
+4 & 1 & Decimal places \\
+\end{cctablethree}
+
+The chunk length must be exactly $2 + 5n$ or the file is rejected. Style~0 is
+written but not read back: the reader has already created a General style at
+index 0 and skips the file's first record.
+
+\subsection{STRS --- the text pool}
+
+\begin{cctablethree}{Offset}{Size}{Field}{0.75in}{0.6in}{3.45in}
+0 & 2 & Count of string records \\
+2 & \ldots & The records \\
+\end{cctablethree}
+
+Each record is a 2-byte identifier, a 2-byte length, and that many bytes of
+text. Identifiers start at 1 and are the identifiers the cells refer to. A
+string longer than 1,024 bytes makes the file invalid.
+
+\begin{ccnote}
+Text is stored as plain bytes in the machine's own character set, not as
+PETSCII and not as UTF-8. What is in the file is what appears on screen.
+\end{ccnote}
+
+\subsection{COLW --- column widths}
+
+One chunk per worksheet: a 1-byte worksheet number followed by 256 width bytes.
+All 256 are always written whether or not they differ from the default of ten.
+A short chunk is read as far as it goes; a long one has its tail ignored.
+
+\subsection{CELS --- the cells}
+
+One chunk per worksheet.
+
+\begin{cctablethree}{Offset}{Size}{Field}{0.75in}{0.6in}{3.45in}
+0 & 1 & Worksheet number \\
+1 & 4 & Total cell count \\
+5 & \ldots & Row blocks, until the chunk ends \\
+\end{cctablethree}
+
+Each row block is a 2-byte row number, a 2-byte count of cells in that row, and
+that many cell records. Rows ascend; within a row, columns ascend. A count of
+0, or of more than 256, makes the file invalid.
+
+\subsection{META --- summary}
+
+Four 16-bit fields: worksheet count, active worksheet, highest row used,
+highest column used.
+
+\begin{ccnote}
+\lit{META} is written but \textbf{not read}. The worksheet count comes from
+\lit{SHNM} and the used range is recomputed as the cells are loaded. It is
+recorded here because it is in the file, not because it matters.
+\end{ccnote}
+
+\section{The cell record}
+
+Eight bytes.
+
+\begin{ccfigure}
+\begin{tikzpicture}[x=1pt,y=-1pt,
+  by/.style={draw=ccink,line width=0.6pt,minimum width=34pt,minimum height=19pt,
+             inner sep=1pt,font=\ttfamily\fontsize{7.6}{9}\selectfont},
+  bx/.style={by,fill=black!12},
+  num/.style={font=\sffamily\fontsize{6.8}{8}\selectfont,text=ccink,anchor=south}]
+  \foreach \i/\t/\s in {0/col/1,1/type/1,2/style/1}{
+    \node[bx] at ({\i*35+17},10) {\t};
+    \node[num] at ({\i*35+17},-2) {\i};
+  }
+  \foreach \i in {3,4,5,6,7}{
+    \node[by] at ({\i*35+17},10) {};
+    \node[num] at ({\i*35+17},-2) {\i};
+  }
+  \draw[ccink,line width=0.5pt] (105,22) -- (105,29) -- (280,29) -- (280,22);
+  \node[font=\sffamily\fontsize{7.4}{9}\selectfont,text=ccink,anchor=north]
+    at (192,30) {value, five bytes, meaning set by \texttt{type}};
+\end{tikzpicture}
+\caption{The eight-byte cell record}
+\label{fig:cellrecord}
+\end{ccfigure}
+
+\begin{cctablethree}{Offset}{Size}{Field}{0.75in}{0.6in}{3.45in}
+0 & 1 & Column, 0--255 \\
+1 & 1 & Type: 0 empty, 1 number, 2 text, 3 boolean, 4 date, 5 formula, 6 error \\
+2 & 1 & Style, an index into \lit{STYL} \\
+3 & 5 & Value \\
+\end{cctablethree}
+
+\begin{cctable}{Type}{The five value bytes hold}{1.35in}{3.47in}
+Number & The number, in the 5-byte format of Appendix~\ref{app:numbers} \\
+Date & The same, holding a day count \\
+Boolean & The same, holding 1 or 0 \\
+Text & A 2-byte string identifier, then three zero bytes \\
+Formula & A 2-byte string identifier naming the formula's \emph{source text},
+then three zero bytes \\
+Error & The error code in the first byte \\
+\end{cctable}
+
+A blank cell has no record at all; storage is sparse.
+
+\section{Version history}
+
+\begin{cctable}{Version}{Meaning}{0.75in}{4.07in}
+1 & One unnamed worksheet. \lit{COLW} and \lit{CELS} carry no worksheet byte.
+Still opens; its formulas are dropped. \\
+2 & Every worksheet. \lit{COLW} and \lit{CELS} gain the leading worksheet byte.
+Still opens; its formulas are dropped. \\
+3 & A formula cell stores the identifier of its source text, so formulas
+survive a save and load. Current. \\
+\end{cctable}
+
+Versions 1 and 2 stored a memory address in a formula cell, which means nothing
+once the file has been read into a different machine. Those cells are read and
+discarded.
+
+\section{Saving is atomic}
+
+A save writes the whole workbook to \fname{CMDRCALC.TMP}, reads it back and
+verifies the CRC, and only then deletes the previous file and renames the
+temporary one over it. Any failure removes the temporary file and leaves the
+previous workbook untouched. The cost is that the card must have room for two
+copies at once.
+
+\section{Loading}
+
+The header is validated before anything in memory is touched, so a bad header
+leaves the current workbook alone. Past that point the workbook is cleared
+first; a failure after that point clears it again, so a damaged file leaves an
+empty workbook rather than a half-built one.
+
+Formulas are collected as the file is read and compiled after it has been
+closed, which is why a large workbook pauses twice.

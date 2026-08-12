@@ -1,0 +1,284 @@
+\chapter{Formula Reference}
+\label{ch:formularef}
+
+\section{Starting a formula}
+\index{formulas!syntax}
+
+A cell entry is a formula if, and only if, its \emph{first} character is
+\lit{=}.
+
+\begin{ccexamples}[]{0.44\linewidth}
+\exn{=1+1}{2}{a formula}
+\exn{\textvisiblespace=1+1}{=1+1}{a leading space, so it is text}
+\exn{+A1}{+A1}{text --- Lotus notation is not supported}
+\exn{@SUM(A1:A9)}{@SUM(A1:A9)}{text}
+\end{ccexamples}
+
+\section{Operators}
+\index{operators}
+
+There are twelve, in five levels of precedence.
+
+\begin{ccfigure}
+\begin{tikzpicture}[x=1pt,y=-1pt,
+   op/.style={font=\ttfamily\fontsize{9.5}{11.5}\selectfont,text=ccink},
+   dsc/.style={font=\sffamily\fontsize{8}{10}\selectfont,text=ccink,anchor=west},
+   lv/.style={font=\sffamily\bfseries\fontsize{8}{10}\selectfont,text=ccink,
+              anchor=east}]
+  \foreach \i/\lv/\ops/\d in {%
+     0/{binds tightest}/{$-$x~~+x~~(~)}/{unary sign, parentheses},
+     1/{}/{\^{}}/{power, left to right},
+     2/{}/{*~~/}/{multiply, divide},
+     3/{}/{+~~$-$}/{add, subtract},
+     4/{binds loosest}/{=~~<>~~<~~>~~<=~~>=}/{comparison, does not chain}}{
+    \pgfmathsetmacro{\yy}{\i*26}
+    \fill[black!6] (52,{\yy-9}) rectangle (330,{\yy+11});
+    \node[lv] at (46,{\yy+4}) {\lv};
+    \node[op,anchor=west] at (58,{\yy+4}) {\ops};
+    \node[dsc] at (190,{\yy+4}) {\d};
+  }
+  \draw[ccink,line width=0.6pt,-{Latex[length=4pt]}] (338,-4) -- (338,114);
+  \node[font=\sffamily\fontsize{7}{8.4}\selectfont,text=ccink,
+        rotate=-90,anchor=south] at (344,55) {evaluated later};
+\end{tikzpicture}
+\caption{Operator precedence, tightest binding at the top}
+\label{fig:precedence}
+\end{ccfigure}
+
+\subsection{Consequences worth knowing}
+
+\begin{ccexamples}[]{0.44\linewidth}
+\exn{=2+3*4}{14}{multiplication first}
+\exn{=(2+3)*4}{20}{}
+\exn{=100/10/2}{5}{left to right, not 100/(10/2)}
+\exn{=2\^{}3\^{}2}{64}{power is \emph{left}-associative, as in Excel}
+\exn{=-2\^{}2}{4}{the sign binds tighter than the power}
+\exn{=1+1=2}{TRUE}{arithmetic before comparison}
+\end{ccexamples}
+
+\begin{ccnote}
+\fml{=2\^{}3\^{}2} is 64 here and 64 in Excel, but 512 in ordinary mathematical
+notation and in most programming languages. \fml{=-2\^{}2} is 4 here and 4 in
+Excel, but $-4$ in mathematics. \ccprod{} agrees with the spreadsheet
+convention, not the mathematical one, on purpose.
+\end{ccnote}
+
+\subsection{Comparison operators}
+
+Written \lit{=}, \lit{<>}, \lit{<}, \lit{>}, \lit{<=}, \lit{>=}. There is no
+\lit{!=} and no \lit{==}. They produce \msg{TRUE} or \msg{FALSE}.
+
+Comparisons do not chain: \fml{=A1<B1<C1} is a syntax error and the entry is
+refused.
+
+\begin{cccaution}
+\textbf{Comparing text does not work properly.} Two cells that both contain
+\lit{abc} compare as \emph{not} equal, because \ccprod{} compares text by
+identity rather than by content and each piece of text in the workbook is a
+separate object. \fml{="a"="a"} inside a single formula is \msg{FALSE} for the
+same reason.
+
+Worse, unequal text compares as ``greater'' in both directions, so
+\fml{="a">"b"} and \fml{="b">"a"} are both \msg{TRUE} and \lit{<} on text is
+always \msg{FALSE}.
+
+Comparison is only reliable on numbers, dates and booleans. Do not build a
+worksheet around comparing text.
+\end{cccaution}
+
+\subsection{What is missing}
+
+There is no text concatenation operator --- no \lit{\&}. There is no percent
+postfix: \fml{=50\%} is a syntax error, not 0.5.
+
+\section{Cell references}
+\index{references!syntax}
+
+A reference is one or two column letters followed by one to five row digits:
+\cellref{A1}, \cellref{B9}, \cellref{AZ100}, \cellref{IV65535}. Letters may be
+upper or lower case.
+
+Columns run \cellref{A} to \cellref{IV} (1 to 256) and rows 1 to 65,535.
+Anything outside that --- \fml{=A0}, \fml{=ZZ1}, \fml{=A70000} --- is an invalid
+reference and the entry is refused.
+
+\subsection{Dollar signs: absolute references}
+\index{absolute references}\index{references!absolute}\index{\$ (dollar sign)}
+
+A \lit{\$} before the column letters, before the row digits, or before both,
+stops that part of the reference moving when the formula is copied.
+
+\begin{cctable}{Written}{When the formula is copied}{1.4in}{3.42in}
+\fml{B1} & Relative. Both the column and the row move. \\
+\fml{\$B1} & The column stays at \cellref{B}; the row moves. \\
+\fml{B\$1} & The row stays at 1; the column moves. \\
+\fml{\$B\$1} & Absolute. Always \cellref{B1}, wherever it is copied. \\
+\end{cctable}
+
+This is what makes one formula worth copying down a column. Put
+\fml{=B2*\$C\$1} in a cell and copy it down: each row multiplies its own
+\cellref{B} by the single rate in \cellref{C1}, because the first reference
+moves and the second does not.
+
+\begin{ccnote}
+The evaluator does not know the difference. The compiler parses \lit{\$} and
+discards it, so \fml{=\$B\$1} and \fml{=B1} are the same bytecode and give the
+same answer. The \lit{\$} survives in the formula's \emph{source text}, which
+is what the rewriter reads when a cell moves --- and the rewriter is the only
+thing that needs to know.
+
+One consequence: \textbf{a \lit{\$} does not protect a reference from an
+inserted or deleted row}. A dollar sign fixes a reference against copying, and
+a row that has physically moved has moved for everybody. See
+Chapter~\ref{ch:rows}.
+\end{ccnote}
+
+\subsection{Ranges}
+
+Two references and a colon: \cellref{A1:B9}. No spaces are allowed around the
+colon --- \fml{=A1 : B2} is a syntax error, although \fml{=A1 + B2} is fine.
+
+A range is always a rectangle, not a list of cells. \fml{=SUM(B1:C2)} adds four
+cells.
+
+The corners may be given either way round: \cellref{B20:A1} and
+\cellref{A1:B20} are the same rectangle.
+
+\begin{cccaution}
+\textbf{Only five functions understand a range}: \fn{SUM}, \fn{AVERAGE},
+\fn{MIN}, \fn{MAX} and \fn{COUNT}. Give a range to any other function and you
+get \errv{\#VALUE!} --- \fml{=ABS(A1:A3)} and \fml{=ROUND(A1:A3,2)} both fail
+that way.
+
+A range used outside a function collapses to its top-left cell without
+comment: \fml{=A1:B9*2} quietly means \fml{=A1*2}.
+\end{cccaution}
+
+There are no whole-column references (\lit{A:A}), no three-dimensional ranges
+across worksheets, and no named ranges.
+
+\subsection{References to another worksheet}
+
+Three spellings:
+
+\begin{ccexamples}[]{0.44\linewidth}
+\exn{=Q1!B5}{}{plain name}
+\exn{=SUM(Q1!B2:B40)}{}{a range}
+\exn{='My Data'!A1}{}{quotes for a name with a space}
+\end{ccexamples}
+
+An unquoted name may contain letters, digits, underscores and full stops.
+Anything else --- including a space, or a leading digit --- needs single quotes.
+Names are matched without regard to case and must match the whole stored name.
+
+The prefix applies to \textbf{one following reference only}. In
+\fml{='My Data'!A1+A3}, \cellref{A3} is on the current worksheet.
+
+A worksheet name that does not exist makes the reference invalid and the entry
+is refused.
+
+\section{Values in a formula}
+
+\subsection{Numbers}
+
+Digits, an optional decimal point, and an optional exponent introduced by
+\lit{e} or \lit{E} with an optional sign: \lit{42}, \lit{3.14}, \lit{1.5E2},
+\lit{15e-1}. At most twenty-three characters.
+
+\subsection{Text}
+
+In double quotes. A doubled \lit{""} inside is one literal quote.
+
+\begin{ccexamples}[]{0.44\linewidth}
+\ex{="hello"}{hello}
+\ex{="say ""yes"""}{say "yes"}
+\end{ccexamples}
+
+A string literal in a formula may be at most \textbf{forty-eight} characters.
+Longer than that, or unterminated, is a syntax error.
+
+\subsection{TRUE and FALSE}
+
+Written without quotes, in any case.
+
+\section{Spaces}
+
+Only the space character is skipped, and only in certain places: around
+operators, around parentheses, between a function name and its opening bracket,
+and around commas. \fml{=~~1~~+~~2~~} is a valid formula.
+
+Tabs are not skipped and neither are spaces inside a range's colon. Anything
+left over after a complete expression is a syntax error, so \fml{=1 2} is
+refused.
+
+\section{Argument separator}
+
+A comma. Semicolons are not accepted.
+
+\section{How a cell is read by a formula}
+\index{cells!coercion}
+
+\begin{cctable}{The cell holds}{The formula sees}{1.75in}{3.07in}
+A number or a date & That number \\
+\msg{TRUE} or \msg{FALSE} & 1 or 0 \\
+Text & Text. In arithmetic that is \errv{\#VALUE!}; inside a range it is
+skipped \\
+An error & The same error, which propagates \\
+A formula & That formula's last calculated value \\
+Nothing at all & \textbf{Zero} when read on its own --- \fml{=Z90+1} is 1 ---
+but \textbf{skipped} when it falls inside a range \\
+\end{cctable}
+
+That last row is the one to remember. \fml{=AVERAGE(B1:B10)} over three
+populated cells divides by three, not by ten, which is what makes it agree with
+Excel.
+
+\section{Limits}
+\index{formulas!limits}
+
+\begin{cctable}{Limit}{Value}{2.6in}{2.22in}
+Longest formula that can be typed & 80 characters \\
+Longest formula in a file & 255 characters \\
+Longest string literal & 48 characters \\
+Values live at once during evaluation & 10 \\
+Compiled size of one formula & 320 bytes \\
+Nesting depth & No fixed limit; bounded by the above \\
+\end{cctable}
+
+\begin{ccnote}
+The ten-value evaluation limit is the one you can reach by accident. A function
+call with eleven or more arguments exceeds it, and the cell shows
+\errv{\#ERR11!} --- which is the program's way of saying it ran out of room,
+not that your formula is wrong. Use a range instead of a long argument list:
+\fml{=SUM(A1:A20)} costs one value where \fml{=SUM(A1,A2,A3,\ldots)} costs
+twenty.
+\end{ccnote}
+
+\section{When a formula is refused}
+
+These are found while the formula is being compiled --- as you press
+\key{Return}. Nothing is stored and the cell keeps what it had. No message is
+shown.
+
+\begin{cctable}{Cause}{Example}{2.6in}{2.22in}
+Syntax error & \fml{=1+}~~\fml{=(1}~~\fml{=1 2}~~\fml{=A1<B1<C1} \\
+Unknown name or function & \fml{=NOSUCH(1)}~~\fml{=SUM} \\
+Invalid cell reference & \fml{=A0}~~\fml{=ZZ1}~~\fml{=Nowhere!A1} \\
+Wrong number of arguments & \fml{=IF(1)}~~\fml{=ABS(1,2)} \\
+Too long & Over 255 characters, or over 320 bytes compiled \\
+\end{cctable}
+
+\section{When a formula produces an error}
+
+These go into the cell and are displayed. Chapter~\ref{ch:messages} lists them all.
+
+\begin{cctable}{Value}{Cause}{1.2in}{3.62in}
+\errv{\#DIV/0!} & Division by zero; \fn{MOD} by zero; \fn{AVERAGE} of nothing \\
+\errv{\#VALUE!} & Text where a number was needed, or a range given to a
+function that does not take one \\
+\errv{\#NUM!} & Overflow, or an argument out of range \\
+\errv{\#CYCLE!} & Circular reference \\
+\errv{\#ERR}\emph{n}\errv{!} & A fault in the program rather than in the
+formula, reported with its own code. \errv{\#ERR11!} is the one you can
+provoke: more than ten live values \\
+\end{cctable}

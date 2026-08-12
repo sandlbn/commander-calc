@@ -1,0 +1,190 @@
+\chapter{Differences and Known Limitations}
+\label{app:differences}
+
+Everything \ccprod{} does not do, or does differently, in one list. Two kinds of
+entry are mixed here and marked apart: \textbf{absences}, which are work that
+has not been done, and \textbf{defects}, which are work that was done wrong.
+
+\section{Absences}
+
+\subsection{Selection and editing}
+
+\begin{ccsteps}
+\item \textbf{No fill, no fill down, no fill series.} A column of similar
+formulas is built by copying a block and pasting it, which does adjust the
+references --- but there is no one-key fill.
+\item \textbf{No cut or move.} Copy and paste, then clear what you left.
+\item \textbf{No multi-level undo.} One cell, one level, and a pasted or
+cleared block cannot be undone at all.
+\item \textbf{No Find Next.} There is no need for one: repeating
+\menupath{Find} walks the matches. See Chapter~\ref{ch:finding}.
+\item \textbf{Replace does not touch formulas}, and cannot be undone.
+\item \textbf{No Go to.} You cannot type an address to jump to it.
+\item \textbf{No insert or delete of a single cell.} Whole rows and whole
+columns only; neighbours cannot be shifted on their own.
+\end{ccsteps}
+
+\subsection{Formatting}
+
+\begin{ccsteps}
+\item \textbf{No formatting commands of any kind.} Number formats, bold,
+alignment and column widths are all supported by the display and both file
+formats --- and none of them can be set from the keyboard. They arrive from
+imported files only.
+\item \textbf{One currency symbol, \lit{\$}}, and no thousands separators.
+\item \textbf{One date format, \lit{YYYY-MM-DD}.}
+\item \textbf{No colours, borders, fonts or cell shading.}
+\item \textbf{No split screen, no zoom, no hidden rows or columns.} There
+\emph{are} freeze panes --- see Chapter~\ref{ch:moving}.
+\item \textbf{No printing.}
+\end{ccsteps}
+
+\subsection{Formulas}
+
+\begin{ccsteps}
+\item \textbf{Fourteen functions.} No text functions, lookup functions,
+statistical functions beyond \fn{AVERAGE}, financial functions or date
+functions. Chapter~\ref{ch:funcref} has the full list of what is missing.
+\item \textbf{No \lit{\&} concatenation} and no \lit{\%} postfix.
+\item \textbf{No named ranges}, no whole-column references (\lit{A:A}), no
+three-dimensional ranges across worksheets, no array formulas.
+\item \textbf{No R1C1 notation.}
+\item \textbf{No iterative calculation.} (There \emph{is} a manual
+recalculation mode --- see Chapter~\ref{ch:recalc}.)
+\item \textbf{Semicolon is not accepted} as an argument separator, and a tab is
+not treated as whitespace.
+\end{ccsteps}
+
+\subsection{Elsewhere}
+
+\begin{ccsteps}
+\item \textbf{No macros, windows, or linked workbooks.}
+\item \textbf{Three chart types}, all of one column, at most sixteen values:
+bars, a line and a pie. None is stored in the workbook, though any of them can
+be written out as a \fname{.BMP}. No stacked, scatter or area charts.
+Chapter~\ref{ch:charting}.
+\item \textbf{No way to change device or directory} from inside the program.
+\item \textbf{No way to type a date.}
+\end{ccsteps}
+
+\section{Differences in behaviour}
+
+Things that exist here and work differently from the way another spreadsheet
+would do them.
+
+\begin{cctablethree}{Case}{Commander Calc}{Elsewhere}{1.5in}{1.55in}{1.77in}
+\fml{=2\^{}3\^{}2} & 64 & 512 in mathematics; 64 in Excel \\
+\fml{=-2\^{}2} & 4 & $-4$ in mathematics; 4 in Excel \\
+\fn{MIN} or \fn{MAX} of nothing & 0 & 0 in Excel \\
+\fn{AVERAGE} of nothing & \errv{\#DIV/0!} & \errv{\#DIV/0!} in Excel \\
+\fn{MOD} sign & Takes the divisor's & Same in Excel; differs from C \\
+\fn{INT} of $-2.7$ & $-3$ & $-3$ in Excel; $-2$ if truncating \\
+Circular reference & \errv{\#CYCLE!} in the cell & 0 and a status warning in
+Excel \\
+A number below 1 & \lit{.5}, no leading zero & \lit{0.5} \\
+Value too wide for a column & Cut off silently & \lit{\#\#\#\#} \\
+\lit{\$} in a reference & Parsed and ignored & Fixes the reference on copy \\
+Deleting a referenced row & Points at the replacement & \errv{\#REF!} \\
+\end{cctablethree}
+
+Where \ccprod{} and Excel agree, that is deliberate: the point of an import
+format is that the numbers come out the same.
+
+\section{Defects}
+
+These are wrong rather than absent. They are documented here because a manual
+that quietly omitted them would be worse than useless.
+
+\subsection{END goes to the wrong place}
+
+\key{End} moves to column \cellref{IV} --- the last column that can exist ---
+rather than to the last column in use. In an empty worksheet that is a jump of
+255 columns into nothing. \keyc{Shift}{Home} gets you back.
+
+\subsection{A sorted range is not rewritten, and cannot be}
+
+Inserting rows, deleting rows, inserting and deleting columns, sorting, undoing
+a sort and pasting all rewrite the references inside formulas so that they go on
+meaning the same cells. One case is beyond that treatment.
+
+\begin{cccaution}
+\textbf{A range spanning rows that a sort moves is wrong afterwards.}
+\fml{=SUM(B2:B10)} names nine consecutive rows; a sort scatters those rows, and
+no rewriting can express where they went, because they are no longer next to
+each other. \ccprod{} asks before sorting rows that hold formulas ---
+\msg{ranges over sorted rows may be wrong} --- and that is the case it is
+asking about.
+
+Keep range formulas out of the rows being sorted: in a summary block above the
+table, or on another worksheet.
+\end{cccaution}
+
+Rewriting has three further gaps, all documented in Chapter~\ref{ch:rows}: a
+reference naming another worksheet is left alone; a reference pointing straight
+at a deleted row silently ends up on whatever replaced it, where Excel would
+show \errv{\#REF!}; and a formula over 128 characters long is not rewritten at
+all.
+
+\subsection{Text comparison is by identity, not by content}
+
+\begin{cccaution}
+Two cells both containing \lit{abc} compare as unequal, because each piece of
+text in a workbook is a separate object and comparison tests whether they are
+the same object. \fml{="a"="a"} is \msg{FALSE}.
+
+Worse, unequal text compares as greater in both directions:
+\fml{="a">"b"} and \fml{="b">"a"} are both \msg{TRUE}, and \lit{<} on text is
+always \msg{FALSE}.
+
+Comparison is reliable on numbers, dates and booleans only.
+\end{cccaution}
+
+\subsection{The time format is not implemented}
+
+A cell formatted as a time displays its raw fractional number rather than a
+time. This is deliberate --- visibly unfinished was preferred to plausibly
+wrong --- but it is a gap, not a design.
+
+\subsection{A date-formatted cell holding an out-of-range value}
+
+A cell with a date format whose value is negative, or too large to be a day
+number, produces unpredictable rubbish rather than an error. Day number 0
+displays as \lit{1900-01-00}, which is at least recognisable as nonsense.
+
+\subsection{The note on an import result box is wrong}
+
+The counts on an import result box are correct. The parenthesised note after
+them is off by one, so the wrong phrase can appear --- or an empty pair of
+brackets. \textbf{Read the counts, not the note.}
+
+\subsection{Cosmetic}
+
+\begin{ccsteps}
+\item The highlight on an open menu's name is four characters wide whatever the
+name is, so \menupath{Sheet} shows as \msg{Shee} with a stray \msg{t}.
+\item One character of the formula bar, between the separator and the contents,
+is never painted and shows through in the worksheet colour.
+\item Mouse hit-testing inside menus and dialogue boxes assumes an 80 by 60
+display, and is inaccurate in any other text mode.
+\item The Import file list and its busy box are both titled \msg{Open}.
+\item A failure in \menupath{New} or \menupath{Save as} is reported as
+\msg{Save failed}.
+\end{ccsteps}
+
+\section{Limits that will surprise you}
+
+Not defects, but sharp edges worth knowing about in advance.
+
+\begin{cctable}{Limit}{Consequence}{1.65in}{3.17in}
+32 files in a dialogue & A directory with more workbooks than that has some
+that cannot be opened, with no indication. \\
+95 characters per CSV field & Longer text is truncated silently on import. \\
+80 characters per entry & Long formulas must be built in a file and imported. \\
+10 live values per formula & A function with eleven or more arguments gives
+\errv{\#ERR11!}. \\
+128K per XLSX part & Bigger than the cell limit suggests, and it is about the
+file rather than the data. \\
+512 formulas per XLSX import & The rest keep their cached values. \\
+4,096 rows per sort & \msg{too many rows to sort}. \\
+15 characters at the Find prompt & \\
+\end{cctable}

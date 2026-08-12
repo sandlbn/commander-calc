@@ -1,0 +1,242 @@
+\chapter{Messages and Error Values}
+\label{ch:messages}
+
+Everything \ccprod{} can say, in two lists: the error values that appear inside
+a cell, and the messages that appear in a box or on the status line.
+
+\section{Error values in cells}
+\index{error values}
+
+These appear in the cell itself, aligned to the left like text. There are six
+with names, and one catch-all that carries a number.
+
+\cccmd[]{\errv{\#CYCLE!}}
+\index{CYCLE error}
+
+\ccrunin{Cause} A circular reference: the formula depends on itself, directly or
+through a chain of other formulas. Every cell in the cycle and everything
+downstream of it is marked.
+
+\ccrunin{Remedy} Find the loop and break it. Common cases are a total that
+includes its own cell --- \fml{=SUM(A1:A6)} typed into \cellref{A6} --- and two
+cells that read each other. Chapter~\ref{ch:recalc} has more.
+
+\cccmd[]{\errv{\#DIV/0!}}
+\index{DIV/0 error}
+
+\ccrunin{Cause} Division by zero. Also \fn{MOD} with a divisor of zero, zero
+raised to a negative power, and \fn{AVERAGE} over a range with no numbers in
+it.
+
+\ccrunin{Remedy} Guard the division: \fml{=IF(B1=0,0,A1/B1)}. Note that an
+empty cell reads as zero when a formula divides by it, so a divisor that has
+simply not been filled in yet produces this too.
+
+\cccmd[]{\errv{\#ERR}\emph{n}\errv{!}}
+\index{ERR error}
+
+\ccrunin{Cause} Something went wrong inside the program rather than inside your
+formula, and \emph{n} is the internal code for what. This is the catch-all: any
+error that has no \errv{\#\ldots!} spelling of its own is shown this way, with
+its number, so that the cause can be looked up rather than guessed at.
+
+\begin{cctable}{Shows}{Means}{1.2in}{3.62in}
+\errv{\#ERR10!} & Out of memory --- the banked allocator is exhausted. \\
+\errv{\#ERR11!} & A resource limit. During evaluation this means the formula
+needed more than ten values live at once: a function call with eleven or more
+arguments, or a deeply nested expression. \\
+\errv{\#ERR40!} & A syntax error reached the evaluator, which should not
+happen. \\
+\end{cctable}
+
+\ccrunin{Remedy} \errv{\#ERR11!} is the one you can fix yourself: use a range
+instead of a list of arguments. \fml{=SUM(A1:A20)} needs one value where
+\fml{=SUM(A1,A2,\ldots,A20)} needs twenty. Or split the formula across two
+cells. For any other number, save the workbook under a new name and restart.
+
+\cccmd[]{\errv{\#NAME?}}
+\index{NAME error}
+
+\ccrunin{Cause} A name the program does not know. \textbf{This cannot be
+produced by typing}: a formula with an unknown function in it is refused at
+entry rather than stored. It appears only in a cell imported from an
+\fname{.XLSX} file that already contained \errv{\#NAME?}.
+
+\ccrunin{Remedy} Fix it in the original file, or retype the cell here.
+
+\cccmd[]{\errv{\#NUM!}}
+\index{NUM error}
+
+\ccrunin{Cause} A number out of range. Arithmetic overflowed --- the largest
+number \ccprod{} can hold is about $1.7\times10^{38}$ --- or \fn{ROUND} was
+given a number of places outside $-9$ to $9$, or a negative number was raised
+to a fractional power.
+
+\ccrunin{Remedy} Scale the numbers down. A worksheet of very large values can
+often be held in thousands or millions instead. Appendix~\ref{app:numbers} gives the exact
+limits.
+
+\cccmd[]{\errv{\#REF!}}
+\index{REF error}
+
+\ccrunin{Cause} An invalid reference. Like \errv{\#NAME?}, this \textbf{cannot
+be produced by typing} --- a bad reference is refused at entry. It appears only
+in cells imported from an \fname{.XLSX} that already contained \errv{\#REF!}.
+
+\begin{ccnote}
+Deleting a row in \ccprod{} does \emph{not} produce \errv{\#REF!} in formulas
+that pointed into it. They quietly point at whatever moved up into its place.
+That is worse than an error value, and it is why Chapter~\ref{ch:rows} says what it says.
+\end{ccnote}
+
+\cccmd[]{\errv{\#VALUE!}}
+\index{VALUE error}
+
+\ccrunin{Cause} The wrong kind of value. Usually one of:
+
+\begin{ccsteps}
+\item Arithmetic on a cell containing text --- \fml{=A1*2} where \cellref{A1}
+holds \lit{n/a}.
+\item A range given to a function that does not take one. Only \fn{SUM},
+\fn{AVERAGE}, \fn{MIN}, \fn{MAX} and \fn{COUNT} accept ranges;
+\fml{=ABS(A1:A3)} is \errv{\#VALUE!}.
+\item Text as the condition of \fn{IF}, or as an argument to \fn{AND},
+\fn{OR}, \fn{NOT}, \fn{ABS}, \fn{INT}, \fn{ROUND} or \fn{MOD}.
+\end{ccsteps}
+
+\ccrunin{Remedy} Check the cells the formula reads. A number that was typed
+with a stray character in it is stored as text and looks identical in a narrow
+column.
+
+\section{Messages in boxes}
+\index{messages}
+
+These appear as the body of a box titled with the command that failed ---
+\msg{Save failed}, \msg{Open failed}, \msg{Import failed}, \msg{Export failed},
+or \msg{Sheet}.
+
+\begin{cctable}{Message}{Cause and remedy}{1.65in}{3.17in}
+\msg{Checksum mismatch} & The file is a \fname{.X16S} but its contents do not
+match the checksum stored in it. Something has damaged it. There is no repair;
+use a backup. \\
+\msg{Circular reference} & A formula depends on itself. See \errv{\#CYCLE!}
+above. \\
+\msg{Damaged or unrecognised file} & Not a file of the type expected: not a
+\fname{.X16S}, not a ZIP archive, or a \fname{.X16S} written by a later version
+of \ccprod{} than this one. \\
+\msg{Disk error} & The card is full, write-protected, absent, or faulty. On a
+save, check there is room for two copies of the workbook. \\
+\msg{Division by zero} & As \errv{\#DIV/0!} above, reported from a context that
+uses a box. \\
+\msg{File not found} & The name does not exist on the device. \\
+\msg{Formula syntax error} & The formula could not be parsed. \\
+\msg{Import stopped at a limit} & The import ran into one of the fixed limits
+and did not finish. What did arrive is in the workbook. \\
+\msg{Invalid cell reference} & A reference outside \cellref{A1}--\cellref{IV65535},
+or naming a worksheet that does not exist. \\
+\msg{Number out of range} & As \errv{\#NUM!} above. \\
+\msg{Out of memory} & The machine's banked RAM is exhausted. A larger workbook
+needs a machine with more memory; the status line at startup says how much this
+one has. \\
+\msg{Resource limit reached} & A fixed limit rather than memory: more than
+16,384 cells on a worksheet, 128 styles, sixteen worksheets, 8,192 distinct
+pieces of text. Appendix~\ref{app:limits} lists them all. \\
+\msg{Unexpected end of file} & The file stops earlier than its own contents say
+it should. It has been truncated. \\
+\msg{Unknown name or function} & A function \ccprod{} does not have. Chapter~\ref{ch:funcref}
+lists the fourteen it does. \\
+\msg{Unsupported feature} & The file uses something this program does not
+implement. \\
+\msg{Wrong value type} & Usually the wrong number of arguments to a function
+--- \fml{=IF(1)} or \fml{=ABS(1,2)}. \\
+\msg{Unknown error} & Should not happen. If it does, the workbook in memory is
+of uncertain soundness; save it under a new name and check it. \\
+\end{cctable}
+
+\section{Other messages}
+
+\begin{cctable}{Message}{Where and why}{2.15in}{2.67in}
+\msg{A large workbook can take a minute or two.} & In the busy box during an
+import or export. Not an error. \\
+\msg{delete it and its cells?} & Confirming \menupath{Sheet > Delete}. \\
+\msg{Delete row? (y/n)} & On the message line, confirming
+\menupath{Layout > Delete row}. \\
+\msg{discard unsaved changes?} & Confirming \menupath{New},
+\menupath{Open} or \menupath{Quit} with a modified workbook. \\
+\msg{end it .XLSX for Excel, .CSV for plain text} & A hint on the name box. It
+applies to \menupath{Export}; \menupath{Save} always writes \fname{.X16S}
+whatever you type. \\
+\msg{ranges over sorted rows may be wrong} & Before a sort of rows containing
+formulas. \key{Y} to go ahead. Relative references move with their rows; a
+range spanning the sorted rows cannot. See Chapter~\ref{ch:sorting}. \\
+\msg{Copied} & The block, or the cell, is on the clipboard. Not an error. \\
+\msg{Delete column? (y/n)} & Before \menupath{Layout > Delete column}. There is
+no undo for it. \\
+\msg{Any key, S saves} & On a chart. Not an error: \key{S} writes it out,
+anything else goes back to the worksheet. \\
+\msg{no matching files on the card} & The file list found nothing of the right
+extension in this directory. \\
+\msg{No numbers} & A chart command found nothing to draw from the cursor
+down. On a pie it also means every value was negative or zero. \\
+\msg{Saved CHART.BMP} & \key{S} was pressed on a chart and the picture was
+written to the card. Not an error. \\
+\msg{Could not write CHART.BMP} & \key{S} was pressed and the card is full,
+write-protected or absent. \\
+\msg{not enough memory to sort} & The sort needs an index in banked RAM and
+there was none free. \\
+\msg{press any key} & Under every message box. \\
+\msg{too many rows to sort} & More than 4,096 rows in the sort range. \\
+\msg{Working -- please wait.} & In the busy box. It does not animate and does
+not show progress. \\
+\msg{Y = yes, any other key = no} & Under every confirmation box, and meant
+literally. \\
+\end{cctable}
+
+\section{On the status line}
+
+\begin{cctable}{Message}{Means}{1.65in}{3.17in}
+\msg{READY} & Waiting for input; no unsaved changes. \\
+\msg{MODIF} & Waiting for input; there are unsaved changes. \\
+\msg{EDIT} & You are typing into a cell. \\
+\msg{\emph{n} bytes free} & Banked RAM available, measured once at startup. \\
+\msg{CALC} & At the right-hand end: automatic recalculation is off \emph{and}
+something has changed. \textbf{The answers on screen are stale.} Use
+\menupath{Data > Recalc now}. \\
+\msg{STACK!} & See below. \\
+\end{cctable}
+
+\subsection{STACK!}
+\index{STACK!}
+
+\begin{cccaution}
+This replaces the free-memory reading on the status line and means that
+\ccprod{} has used more of its internal working stack than it has. The program
+detected it rather than crashing, but from that point on nothing is guaranteed.
+
+Save the workbook \textbf{under a new name} --- not over your existing file ---
+and restart the program. Then check the saved workbook before trusting it.
+\end{cccaution}
+
+\section{Silence}
+
+Several things fail without saying anything at all. They are collected here
+because a message you do not get is harder to look up than one you do.
+
+\begin{cctable}{You do}{And nothing happens because}{1.95in}{2.87in}
+Type a formula with a mistake in it & The formula would not compile, so the
+entry was refused and the cell kept its old contents. Chapter~\ref{ch:entering}. \\
+Press \keyc{Ctrl}{F} and search & Nothing matched. There is no \msg{not found}
+message. Chapter~\ref{ch:finding}. \\
+Choose \menupath{Data > Sort up} & There is nothing below the cursor to sort.
+Chapter~\ref{ch:sorting}. \\
+Choose \menupath{Data > Undo sort} & You are on a different worksheet, or the
+used range has changed, or the sort has already been undone. Chapter~\ref{ch:sorting}. \\
+Choose \menupath{Layout > Insert row} & The worksheet is empty, or the cursor is
+below the last used row. Chapter~\ref{ch:rows}. \\
+Choose \menupath{Layout > Freeze} & The cursor is too far down the screen, or
+too far right, for anything to be left to scroll. Chapter~\ref{ch:moving}. \\
+Open a menu, or run any file command & One of the program's files is missing
+from the card. Chapter~\ref{ch:installing}. \\
+Type an eighty-first character into a cell & The entry buffer is full.
+Chapter~\ref{ch:entering}. \\
+\end{cctable}

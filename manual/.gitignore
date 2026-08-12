@@ -1,0 +1,8 @@
+# The LaTeX build directory: .aux, .toc, .idx, .log and the working PDF.
+# Already covered by the root .gitignore's build/ rule; repeated here so the
+# rule is visible from the directory it governs.
+build/
+
+# pdf/ is deliberately NOT ignored. `make pdf` publishes the built manual
+# there, and that copy is committed so it can be read and linked to without
+# a TeX installation. Do not add it here.

@@ -1,0 +1,153 @@
+\chapter{Sorting}
+\label{ch:sorting}
+
+\ccprod{} sorts whole rows of the current worksheet into the order given by one
+column. It is the only command in the program that rearranges more than one
+cell, and the only one with an undo of its own.
+
+\section{How the range is chosen}
+\index{sorting!range}
+
+There is no dialogue asking what to sort. The cursor decides everything:
+
+\begin{ccsteps}
+\item \textbf{The column the cursor is in} is the column sorted on.
+\item \textbf{The row the cursor is on} is the first row sorted.
+\item The sort runs from there down to the last row that has anything in it,
+across every column that has anything in it.
+\end{ccsteps}
+
+So to sort a table with a heading row, put the cursor on the \emph{first row of
+data} --- not on the heading --- in the column you want to sort by, and the
+heading stays where it is.
+
+\begin{ccfigure}
+\ccscreenscale{1.1}
+\begin{tikzpicture}
+\node[inner sep=0pt,anchor=north west] (sb) at (0,0) {%
+\ccscreenbegin{38}{8}
+  \ccfillrow{0}{x16lgrey}
+  \cccolhdr{0}{0}{A}{0}\cccolhdr{0}{1}{B}{1}\cccolhdr{0}{2}{C}{0}
+  \foreach \r in {1,...,7}{\ccrowhdr{\r}{\r}{x16black}{x16lgrey}}
+  \ccrowhdr{2}{2}{x16black}{x16yellow}
+  \cccellL{1}{0}{x16black}{Item}
+  \cccellL{1}{1}{x16black}{Qty}
+  \cccellL{1}{2}{x16black}{Price}
+  \cccursor{2}{1}
+  \cccellL{2}{0}{x16black}{Widget}\cccellR{2}{1}{x16white}{40}\cccellR{2}{2}{x16black}{2.50}
+  \cccellL{3}{0}{x16black}{Bolt}\cccellR{3}{1}{x16black}{12}\cccellR{3}{2}{x16black}{.75}
+  \cccellL{4}{0}{x16black}{Nut}\cccellR{4}{1}{x16black}{95}\cccellR{4}{2}{x16black}{.20}
+  \cccellL{5}{0}{x16black}{Washer}\cccellR{5}{1}{x16black}{7}\cccellR{5}{2}{x16black}{.05}
+\ccscreenend
+};
+\node[inner sep=0pt,anchor=north west] (sa) at (2.62in,0) {%
+\ccscreenbegin{38}{8}
+  \ccfillrow{0}{x16lgrey}
+  \cccolhdr{0}{0}{A}{0}\cccolhdr{0}{1}{B}{1}\cccolhdr{0}{2}{C}{0}
+  \foreach \r in {1,...,7}{\ccrowhdr{\r}{\r}{x16black}{x16lgrey}}
+  \ccrowhdr{1}{1}{x16black}{x16yellow}
+  \cccellL{1}{0}{x16black}{Item}
+  \cccellL{1}{1}{x16black}{Qty}
+  \cccellL{1}{2}{x16black}{Price}
+  \cccellL{2}{0}{x16black}{Washer}\cccellR{2}{1}{x16black}{7}\cccellR{2}{2}{x16black}{.05}
+  \cccellL{3}{0}{x16black}{Bolt}\cccellR{3}{1}{x16black}{12}\cccellR{3}{2}{x16black}{.75}
+  \cccellL{4}{0}{x16black}{Widget}\cccellR{4}{1}{x16black}{40}\cccellR{4}{2}{x16black}{2.50}
+  \cccellL{5}{0}{x16black}{Nut}\cccellR{5}{1}{x16black}{95}\cccellR{5}{2}{x16black}{.20}
+\ccscreenend
+};
+\node[anchor=north,font=\sffamily\fontsize{7.6}{9}\selectfont,text=ccink]
+  at ($(sb.south)+(0,-3pt)$) {Cursor on B2. Heading row is left alone.};
+\node[anchor=north,font=\sffamily\fontsize{7.6}{9}\selectfont,text=ccink]
+  at ($(sa.south)+(0,-3pt)$) {After \menupath{Data > Sort up}.};
+\end{tikzpicture}
+\caption{Sorting on column B, ascending}
+\label{fig:sort}
+\end{ccfigure}
+
+Whole rows move. The \lit{Price} column follows its \lit{Qty}; the table stays
+consistent.
+
+\section{The commands}
+
+\begin{cctable}{Command}{Effect}{2.2in}{2.62in}
+\menupath{Data > Sort up} & Sorts into ascending order \\
+\menupath{Data > Sort down} & Sorts into descending order \\
+\menupath{Data > Undo sort} & Puts the rows back \\
+\end{cctable}
+
+None of the three has a keyboard shortcut.
+
+After a sort, and after an undo, the cursor is put back on \cellref{A1}.
+
+\section{The order values sort in}
+\index{sorting!order}
+
+Values are ranked into four groups, and the groups always come in this order:
+
+\begin{ccprocedure}[Sort order, ascending]
+\item \textbf{Numbers}, smallest first. Text that reads as a number ---
+\lit{456} typed as text --- sorts here as a number, not as text.
+\item \textbf{Text}, alphabetically, ignoring case, on the first thirty-two
+characters.
+\item \textbf{Error values}, all equal to each other.
+\item \textbf{Empty cells}.
+\end{ccprocedure}
+
+Descending reverses the first three groups. It does \emph{not} move the empty
+rows: blanks stay at the bottom in both directions, which is almost always what
+you want and is worth knowing when it is not.
+
+A formula sorts by the value it computed, not by the formula text.
+
+\section{Before it sorts}
+\index{sorting!warnings}
+
+\ccprod{} checks three things and may stop or ask.
+
+\begin{cctable}{Condition}{What happens}{1.95in}{2.87in}
+Nothing below the cursor & Nothing happens, and nothing is said. \\
+More than 4,096 rows & \msg{too many rows to sort} \\
+Not enough memory for the index & \msg{not enough memory to sort} \\
+Any formula in the range & \msg{ranges over sorted rows may be wrong}, with
+\key{Y} to go ahead and anything else to stop \\
+\end{cctable}
+
+\textbf{A formula carried along by a sort keeps pointing at its own row.} A
+\fml{=B4*C4} sitting on row~4 becomes \fml{=B9*C9} when that row lands on
+row~9 --- so a row that multiplies its own two figures goes on multiplying
+them, wherever it ends up. That is what a relative reference means, and it is
+what makes sorting a table with a computed column safe.
+
+\begin{cccaution}
+A \emph{range} is the case the warning is about. \fml{=SUM(B2:B10)} names ten
+rows that a sort scatters, and afterwards those ten row numbers hold a
+different ten values. There is no rewriting that can fix it, because the rows
+the range meant are no longer next to each other.
+
+Keep range formulas out of the rows being sorted --- in a summary block above
+the table, or on another worksheet --- and sorting will not disturb them.
+\end{cccaution}
+
+\section{Undoing a sort}
+\index{sorting!undo}
+
+\menupath{Data > Undo sort} reverses the last sort exactly, by replaying the
+moves backwards.
+
+It works \textbf{once}. It refuses --- silently --- if:
+
+\begin{ccsteps}
+\item you have already undone that sort;
+\item you are on a different worksheet from the one that was sorted;
+\item the used range has changed size since the sort, because rows have been
+added or deleted.
+\end{ccsteps}
+
+Any file command --- new, open, save, import, export --- forgets the sort as
+well. Opening a menu does not.
+
+\begin{ccnote}
+\menupath{Undo sort} and \key{F5} \menupath{Undo} are two separate mechanisms
+that do not interact. \key{F5} will not undo a sort, and \menupath{Undo sort}
+will not undo a cell edit.
+\end{ccnote}

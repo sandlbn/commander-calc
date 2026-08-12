@@ -1,0 +1,65 @@
+# Builds the reference manual and publishes it with the product page.
+#
+# The PDF is not in the repository -- docs/manual/build is ignored -- so it is
+# built here on every push. That is the point: the download link on the page
+# can never be older than the manual sources.
+#
+# Only site/ and the built PDF are published. docs/ is NOT the Pages source,
+# deliberately: it holds a third-party reference PDF that must not be served.
+name: Pages
+
+on:
+  push:
+    branches: [main, master]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      # pdflatex, tikz, memoir, makeindex, and the URW/Liberation fonts the
+      # manual asks for by name.
+      - name: Install TeX Live
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            texlive-latex-recommended \
+            texlive-latex-extra \
+            texlive-fonts-recommended \
+            texlive-pictures \
+            fonts-liberation \
+            make
+
+      - name: Build the manual
+        run: make -C docs/manual
+
+      - name: Assemble the site
+        run: |
+          mkdir -p _site
+          cp -r site/. _site/
+          cp docs/manual/build/commander-calc-manual.pdf _site/
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: _site
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4

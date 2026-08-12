@@ -1,0 +1,137 @@
+\chapter{Glossary}
+\label{app:glossary}
+
+\begin{cctable}{Term}{Meaning}{1.35in}{3.47in}
+
+\textbf{Address} & The name of a cell: its column letter followed by its row
+number, as in \cellref{B9}. \\
+
+\textbf{Banked RAM} & Memory reached 8K at a time through a window in the
+address space, rather than directly. The whole workbook lives here. See
+Appendix~\ref{app:memory}. \\
+
+\textbf{Boolean} & A cell holding \msg{TRUE} or \msg{FALSE}. Counts as 1 or 0
+in arithmetic. \\
+
+\textbf{Cell} & One box of the worksheet. Holds a number, text, a date, a
+boolean, a formula or an error value --- or nothing. \\
+
+\textbf{Cell cursor} & The reverse-video block showing which cell the keyboard
+is aimed at. \\
+
+\textbf{Clipboard} & The one cell held by \menupath{Copy} for
+\menupath{Paste}. \\
+
+\textbf{Chart} & A picture of the numbers in the cursor's column --- bars, a
+line or a pie --- drawn on the whole screen. Not stored in the workbook, but
+\key{S} writes it to the card as \fname{CHART.BMP}.
+Chapter~\ref{ch:charting}. \\
+
+\textbf{CMDR-DOS} & The disk operating system of the Commander X16, which
+\ccprod{} uses for all file access. \\
+
+\textbf{Column} & A vertical line of cells, named \cellref{A} to
+\cellref{IV}. \\
+
+\textbf{Commit} & To finish an entry so it is stored, with \key{Return},
+\key{Tab}, \keyc{Shift}{Tab} or an up or down arrow. \\
+
+\textbf{CSV} & Comma-separated values: plain text, one line per row, fields
+separated by commas. \\
+
+\textbf{Current cell} & The cell the cursor is on. Every one-cell command acts
+on it. \\
+
+\textbf{DEFLATE} & The compression method used inside an \fname{.XLSX} archive.
+\ccprod{} can decompress it but cannot produce it, which is why exported
+\fname{.XLSX} files are large. \\
+
+\textbf{Edit mode} & The state in which typing goes into a cell. The status
+line says \msg{EDIT}. \\
+
+\textbf{Error value} & A value such as \errv{\#DIV/0!} that a formula produces
+when it cannot produce a number. Chapter~\ref{ch:messages} lists them. \\
+
+\textbf{Formula} & A cell entry beginning with \lit{=}, evaluated to produce
+the cell's value. \\
+
+\textbf{Freeze} & Pinning the rows above the cursor and the columns to its left
+so that they stay on screen while the rest scrolls.
+Chapter~\ref{ch:moving}. \\
+
+\textbf{Formula bar} & The second line of the screen, showing the current
+cell's address and its actual contents. \\
+
+\textbf{General} & The default number format: up to nine significant digits,
+no trailing zeros, no leading zero below 1. \\
+
+\textbf{Handle} & The bank-and-offset pair by which everything in banked RAM is
+addressed, in place of a pointer. \\
+
+\textbf{HostFS} & The emulator's way of presenting a directory on the host
+computer as though it were a disk on unit 8. \\
+
+\textbf{ISO mode} & The character mode \ccprod{} puts the machine into at
+startup, which makes the keyboard produce ordinary ASCII. \\
+
+\textbf{KERNAL} & The Commander X16's built-in operating system. \\
+
+\textbf{MBF} & Microsoft Binary Format: the five-byte floating-point
+representation \ccprod{} stores numbers in, and the one the machine's ROM
+arithmetic uses. Appendix~\ref{app:numbers}. \\
+
+\textbf{Number format} & How a cell's value is displayed --- General, Integer,
+Decimal, Currency, Percent, Date, Time or Text. Chapter~\ref{ch:formats}. \\
+
+
+\textbf{PETSCII} & The Commodore character encoding. \ccprod{} works in ASCII
+internally and converts only where CMDR-DOS requires it, in file names. \\
+
+\textbf{Range} & A rectangle of cells, written \cellref{A1:B9}. Only \fn{SUM},
+\fn{AVERAGE}, \fn{MIN}, \fn{MAX} and \fn{COUNT} accept one. \\
+
+\textbf{Ready mode} & The state in which keys move the cursor and run commands.
+The status line says \msg{READY} or \msg{MODIF}. \\
+
+\textbf{Recalculation} & Working out every formula's value again. It happens
+after every change, over every worksheet, unless automatic recalculation has
+been switched off. Chapter~\ref{ch:recalc}. \\
+
+\textbf{Reference} & The name of a cell or a range inside a formula. \\
+
+\textbf{Row} & A horizontal line of cells, numbered 1 to 65,535. \\
+
+\textbf{Serial} & The number that stands for a date: 1 is 1~January~1900. \\
+
+\textbf{Status line} & The second line from the bottom, showing the mode, the
+current cell and the free memory. \\
+
+\textbf{Style} & A stored combination of number format, decimal places, bold
+and alignment. A cell names one by number. There are at most 128 in a
+workbook. \\
+
+\textbf{Tab} & The name of a worksheet, as shown on the tab line near the
+bottom of the screen. \\
+
+\textbf{Text pool} & The store holding every piece of text in the workbook.
+Limited to 8,192 entries, and it does not share identical text. \\
+
+\textbf{Used range} & The rectangle from \cellref{A1} to the last row and
+column of a worksheet with anything in them. What \menupath{Export} writes and
+what \menupath{Sort} covers. \\
+
+\textbf{VERA} & The Commander X16's video chip. \ccprod{} writes to it
+directly rather than going through the KERNAL, which is why the display is
+fast and why \lit{-echo} cannot capture it. \\
+
+\textbf{Workbook} & Everything in memory: up to sixteen worksheets, saved as
+one \fname{.X16S} file. \\
+
+\textbf{Worksheet} & One grid of cells, with its own name and its own tab. \\
+
+\textbf{X16S} & \ccprod's own file format. Appendix~\ref{app:fileformat}. \\
+
+\textbf{XLSX} & The Excel workbook format: a ZIP archive of XML documents.
+\ccprod{} reads and writes it. Chapter~\ref{ch:importexport}. \\
+
+\end{cctable}

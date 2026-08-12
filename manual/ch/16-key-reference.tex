@@ -1,0 +1,191 @@
+\chapter{Key Reference}
+\label{ch:keyref}
+
+Every key \ccprod{} responds to, arranged by where you are when you press it.
+
+\section{In the worksheet}
+\index{keys!worksheet}
+
+This is \msg{READY} or \msg{MODIF} mode: the status line says one of those, and
+you are not typing into a cell.
+
+\subsection{Moving}
+
+\begin{cctable}{Key}{Action}{1.6in}{3.22in}
+\key{$\uparrow$} & Up one row \\
+\key{$\downarrow$} & Down one row \\
+\key{$\leftarrow$} & Left one column \\
+\key{$\rightarrow$} & Right one column \\
+\key{Return} & Down one row \\
+\key{Tab} & Right one column \\
+\keyc{Shift}{Tab} & Left one column \\
+\key{PgUp} & Up one screenful (54 rows) \\
+\key{PgDn} & Down one screenful \\
+\key{Home} & Column \cellref{A} of this row \\
+\keyc{Shift}{Home} & Cell \cellref{A1} \\
+\key{End} & Column \cellref{IV} of this row --- \emph{not} the last used
+column \\
+\end{cctable}
+
+\subsection{Commands}
+
+\begin{cctable}{Key}{Action}{1.6in}{3.22in}
+\key{F1} & \menupath{File > New} \\
+\key{F2} & \menupath{Edit > Edit cell} \\
+\key{F3} & \menupath{File > Open} \\
+\key{F4} & \menupath{File > Save} \\
+\key{F5} & \menupath{Edit > Undo} \\
+\key{F6} & \menupath{File > Save as} \\
+\key{F7} & \menupath{File > Import} \\
+\key{F8} & \menupath{File > Export} \\
+\key{F9} & \menupath{File > Quit} \\
+\key{F10} & Open the menu bar \\
+\key{F11} & \menupath{Edit > Paste} --- the same as \keyc{Ctrl}{V} \\
+\key{F12} & \textbf{Not used.} It belongs to the machine's debugger. \\
+\keyc{Ctrl}{C} & \menupath{Edit > Copy} \\
+\keyc{Ctrl}{V} & \menupath{Edit > Paste} \\
+\keyc{Ctrl}{F} & \menupath{Edit > Find} \\
+\key{Backspace} & Clear the current cell \\
+\key{Delete} & Clear the current cell \\
+\key{Esc} & Nothing \\
+Any printable key & Start typing a new entry into the current cell \\
+\end{cctable}
+
+\begin{ccnote}
+The \menupath{Data}, \menupath{Chart} and \menupath{Sheet} menus have no keys
+at all, and neither do \menupath{Insert row} and \menupath{Delete row} on
+\menupath{Edit}. Sorting, recalculating, charting, freezing, inserting or
+deleting a row, and every worksheet command can only be reached through the
+menu bar.
+\end{ccnote}
+
+\subsection{Keys that share a code}
+\index{keys!duplicate codes}
+
+The Commander X16 sends the same character code for certain control
+combinations as it does for named keys, and \ccprod{} cannot tell them apart.
+Pressing either of a pair does whatever this manual says the named key does.
+
+\begin{cctablethree}{This}{Is the same as}{Which does}{1.15in}{1.15in}{2.5in}
+\keyc{Ctrl}{B} & \key{PgDn} & Down one screenful \\
+\keyc{Ctrl}{D} & \key{End} & To column \cellref{IV} \\
+\keyc{Ctrl}{I} & \key{Tab} & Right one column \\
+\keyc{Ctrl}{M} & \key{Return} & Down one row \\
+\keyc{Ctrl}{P} & \key{F9} & Quit \\
+\keyc{Ctrl}{Q} & \key{$\downarrow$} & Down one row \\
+\keyc{Ctrl}{S} & \key{Home} & To column \cellref{A} \\
+\keyc{Ctrl}{T} & \key{Backspace} & Clear the cell \\
+\keyc{Ctrl}{U} & \key{F10} & Open the menu bar \\
+\keyc{Ctrl}{X} & \keyc{Shift}{Tab} & Left one column \\
+\keyc{Ctrl}{Y} & \key{Delete} & Clear the cell \\
+\end{cctablethree}
+
+\begin{cccaution}
+\keyc{Ctrl}{P} quits the program and \keyc{Ctrl}{T} clears the cell. Neither is
+what those combinations do in most software, and the first of them will ask to
+discard your changes if you have any.
+\end{cccaution}
+
+\section{While typing into a cell}
+\index{keys!editing}
+
+This is \msg{EDIT} mode. The editor sees every key first, so nothing in this
+table can be overridden by a command.
+
+\begin{cctable}{Key}{Action}{1.6in}{3.22in}
+Any printable key & Insert that character at the insertion point \\
+\key{$\leftarrow$} & Insertion point left one character \\
+\key{$\rightarrow$} & Insertion point right one character \\
+\key{Home} & To the start of the line \\
+\key{End} & To the end of the line \\
+\key{Backspace} & Delete the character to the left \\
+\key{Delete} & Delete the character at the insertion point \\
+\key{Return} & Store, and move down \\
+\key{$\downarrow$} & Store, and move down \\
+\key{$\uparrow$} & Store, and move up \\
+\key{Tab} & Store, and move right \\
+\keyc{Shift}{Tab} & Store, and move left \\
+\key{Esc} & Abandon the entry \\
+Anything else & Ignored \\
+\end{cctable}
+
+The entry is limited to eighty characters. Beyond that, keystrokes are
+discarded silently.
+
+\section{With a menu open}
+\index{keys!menus}
+
+\begin{cctable}{Key}{Action}{1.6in}{3.22in}
+\key{$\leftarrow$} & Previous menu, wrapping round the five \\
+\key{$\rightarrow$} & Next menu, wrapping round the five \\
+\key{$\uparrow$} & Previous item, wrapping \\
+\key{$\downarrow$} & Next item, wrapping \\
+\key{Return} & Choose the highlighted item \\
+\key{Esc} & Close the menu \\
+\key{F10} & Close the menu \\
+\key{F1}--\key{F9}, \key{Backspace}, \keyc{Shift}{Home} & Close the menu and do
+what that key does in the worksheet \\
+\key{PgUp}, \key{PgDn} & Ignored \\
+\end{cctable}
+
+\section{In the file list}
+\index{keys!dialogues}
+
+\begin{cctable}{Key}{Action}{1.6in}{3.22in}
+\key{$\uparrow$} & Previous file. Does not wrap. \\
+\key{$\downarrow$} & Next file. Does not wrap. \\
+\key{Return} & Open the highlighted file \\
+\key{Esc} & Cancel \\
+First click on a line & Select it \\
+Second click on the same line & Open it \\
+Click off the list & Cancel \\
+\end{cctable}
+
+\section{In a name box}
+
+The full editor is available: arrows, \key{Home}, \key{End}, \key{Backspace},
+\key{Delete} and insertion.
+
+\begin{cctable}{Key}{Action}{1.6in}{3.22in}
+\key{Return} & Accept the name \\
+\key{Esc} & Cancel \\
+\key{Return} on an empty field & Cancel \\
+Click on the hint line, left half & The same as \key{Return} \\
+Click on the hint line, right half & The same as \key{Esc} \\
+\end{cctable}
+
+Names are cut off at twenty-three characters for a file and thirty-one for a
+worksheet.
+
+\section{In a message or confirmation box}
+
+\begin{cctable}{Box}{Keys}{1.6in}{3.22in}
+Message (\msg{press any key}) & Any key, or any click, dismisses it \\
+Confirmation & \key{Y} means yes. \textbf{Any other key means no.} A click on
+\msg{[~~Yes~~]} means yes; a click anywhere else means no. \\
+\end{cctable}
+
+\section{At the Find prompt}
+
+\begin{cctable}{Key}{Action}{1.6in}{3.22in}
+Any printable key & Add a character, up to fifteen \\
+\key{Backspace} & Remove the last character \\
+\key{Return} & Search \\
+\key{Esc} & Abandon \\
+Arrow keys & Ignored \\
+\end{cctable}
+
+\section{While a chart is on screen}
+\index{keys!charts}
+
+\begin{cctable}{Key}{Action}{1.6in}{3.22in}
+\key{S} & Save the chart to the card as \fname{CHART.BMP}, then go back to the
+worksheet \\
+Any other key & Go back to the worksheet \\
+\end{cctable}
+
+\key{S} works in either case. See Chapter~\ref{ch:charting}.
+
+\section{At the Delete row question}
+
+\key{Y}, in either case, deletes the row. Any other key cancels.
