@@ -157,6 +157,49 @@ static void test_alignment(void)
 
 /* --- number formats -------------------------------------------------- */
 
+/* A date format on a value that is not a usable date.
+ *
+ * format_number()'s NF_DATE case breaks out of its switch for a negative
+ * serial, and used to fall off the end of a non-void function -- so the
+ * caller received whatever happened to be in the accumulator as the LENGTH
+ * of a string that had not been written, and rendered that many bytes.
+ *
+ * Nothing caught it: every other format returns from inside the switch, and
+ * no test had ever put a negative number behind a date style. */
+static void test_date_format_on_a_non_date(void)
+{
+    cell_record_t rec;
+    cell_style_t st;
+    char buf[WB_TEXT_MAX];
+    uint8_t id;
+
+    setup();
+
+    memset(&st, 0, sizeof st);
+    st.number_format = NF_DATE;
+    CHECK_EQ(styles_add(&st, &id), ERR_OK);
+
+    /* Negative: there is no such day, so it is not a date after all. */
+    wb_set_text(0, 0, "-5");
+    wb_get(0, 0, &rec);
+    rec.style = id;
+    wb_set(0, 0, &rec);
+    disp(0, 0, buf);
+    CHECK_STR(buf, "-5");
+
+    /* And the length agrees with the text, which is the part that was
+     * returning rubbish. */
+    CHECK_EQ(wb_display_text(0, 0, buf, sizeof buf), (uint8_t)strlen(buf));
+
+    /* A real date still formats. */
+    wb_set_text(0, 1, "45000");
+    wb_get(0, 1, &rec);
+    rec.style = id;
+    wb_set(0, 1, &rec);
+    disp(0, 1, buf);
+    CHECK_EQ(strlen(buf), 10u);           /* yyyy-mm-dd */
+}
+
 static void test_number_formats(void)
 {
     cell_record_t rec;
@@ -382,6 +425,7 @@ void test_workbook(void)
     test_type_detection();
     test_alignment();
     test_number_formats();
+    test_date_format_on_a_non_date();
     test_style_sharing();
     test_undo();
     test_no_string_leak();

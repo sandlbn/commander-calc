@@ -570,6 +570,12 @@ static uint8_t format_number(const snum_t *v, const cell_style_t *st,
         (void)max;
         return snum_to_text(v, out);
     }
+
+    /* NF_DATE broke out: the value is not a usable date, or there is no
+     * room to write one. Show the number, which is what every other
+     * unformattable case does. Falling off the end here returned whatever
+     * was in the accumulator as a length, to a caller that renders it. */
+    return snum_to_text(v, out);
 }
 
 static uint8_t render(uint16_t row, uint16_t col, char *out, uint8_t max,

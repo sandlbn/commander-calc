@@ -487,7 +487,12 @@ release: test x16
 	        exit 1; }; \
 	done
 	@python3 tools/make_examples.py $(CARDDIR) >/dev/null
+	@# From scratch, deliberately. pdflatex reads the .aux files the last run
+	@# left behind, and one written by an older source tree fails the run
+	@# outright ("Extra }, or forgotten \endgroup") rather than being
+	@# overwritten. A release is not the place to debug that.
 	@if command -v pdflatex >/dev/null 2>&1; then \
+	    $(MAKE) --no-print-directory -C $(MANUALDIR) clean >/dev/null && \
 	    $(MAKE) --no-print-directory -C $(MANUALDIR) >/dev/null; \
 	 fi
 	@if [ -f $(MANUAL_PDF_BUILT) ]; then \
