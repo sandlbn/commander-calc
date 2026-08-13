@@ -15,7 +15,8 @@ formats. Once a file has been imported the workbook lives entirely in
 \index{import}
 
 \key{F7} lists every file in the directory ending \fname{.XLSX} or
-\fname{.CSV}, in the same thirty-two-entry list \menupath{Open} uses. Choose
+\fname{.CSV}, in the same browsable list \menupath{Open} uses --- so an import
+can be picked out of a subdirectory. Choose
 one and \ccprod{} decides what to do with it by its name: \fname{.XLSX} goes
 through the Excel importer, anything else through the CSV reader.
 
@@ -209,6 +210,17 @@ to the numbers above it is indistinguishable, on screen, from one that does.
 After importing an Excel workbook, check the formula bar on the cells that
 matter.
 \end{cccaution}
+
+\begin{ccnote}
+An imported formula reads with a leading \lit{=} in the formula bar, the same
+as one you typed, and copies and re-edits as a formula.
+
+That is worth saying because an \fname{.XLSX} does not store the \lit{=}: the
+file holds \lit{SUM(B1:B9)}, and \ccprod{} puts the \lit{=} back as it reads
+it. Earlier versions did not, and an imported formula that was copied or
+re-edited turned into a \emph{label} reading \lit{SUM(B1:B9)} --- text that
+looked almost right and calculated nothing.
+\end{ccnote}
 
 \subsection{Reading the note}
 

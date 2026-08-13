@@ -89,25 +89,29 @@ once.
 \section{Opening}
 \index{opening a workbook}
 
-\key{F3} shows a list of the \fname{.X16S} files in the current directory.
+\key{F3} shows what is in the current directory: the subdirectories, then the
+\fname{.X16S} files.
 
 \begin{ccfigure}
 \ccscreenscale{1.15}
 \begin{tikzpicture}
 \node[inner sep=0pt,anchor=north west] (fo) at (0,0) {%
-\ccscreenbegin{68}{9}
-  \ccdlgbox{0}{8}{Open}
-  \cctext{1}{14}{x16black}{BUDGET.X16S}
-  \ccfill{2}{12}{52}{x16blue}
-  \cctext{2}{14}{x16white}{INVOICE.X16S}
-  \cctext{3}{14}{x16black}{KINDS.X16S}
-  \cctext{4}{14}{x16black}{NDQNAT.X16S}
-  \cctext{5}{14}{x16black}{RAIN.X16S}
-  \cctext{7}{14}{x16black}{up/down~select~~~RETURN~open~~~ESC~cancel}
+\ccscreenbegin{68}{10}
+  \ccdlgbox{0}{9}{Open}
+  \cctext{0}{20}{x16white}{ACCOUNTS}
+  \cctext{1}{14}{x16black}{/..}
+  \cctext{2}{14}{x16black}{/ARCHIVE}
+  \ccfill{3}{12}{52}{x16blue}
+  \cctext{3}{14}{x16white}{BUDGET.X16S}
+  \cctext{4}{14}{x16black}{INVOICE.X16S}
+  \cctext{5}{14}{x16black}{KINDS.X16S}
+  \cctext{6}{14}{x16black}{RAIN.X16S}
+  \cctext{8}{14}{x16black}{up/down~select~~~RETURN~open~~~ESC~cancel}
 \ccscreenend
 };
 \end{tikzpicture}
-\caption{The file list, with the second entry selected}
+\caption{The file list. The title row says where you are; \lit{/..} goes back
+up and \lit{/ARCHIVE} goes in}
 \label{fig:filepicker}
 \end{ccfigure}
 
@@ -119,15 +123,56 @@ cancels.
 If the workbook in memory has been modified you are asked \msg{discard unsaved
 changes?} before the list appears.
 
+\subsection{Directories}
+\index{directories}\index{opening a workbook!subdirectories}
+
+\textbf{A name beginning with \lit{/} is a directory, not a file.} Select one
+and press \key{Return} and the list shows what is inside it; the title row
+changes to say where you are.
+
+Directories are listed above the files, and \lit{/..} --- the way back to the
+directory above --- is always the first entry when there is one. At the
+directory \ccprod{} started in the title row reads \lit{.} and there is no
+\lit{/..}, because that is as far up as the dialogue goes.
+
+\begin{cctable}{To}{Do this}{2.2in}{2.62in}
+Go into a directory & Select \lit{/NAME} and press \key{Return} \\
+Come back out & Select \lit{/..} and press \key{Return} \\
+Open a workbook & Select it and press \key{Return} \\
+\end{cctable}
+
+Opening a workbook from a subdirectory works exactly as it does from the
+starting one: the path travels with the name, and the workbook's name on the
+tab line shows where it came from.
+
+\begin{ccnote}
+The dialogue only ever goes \emph{down} from the directory \ccprod{} started
+in. There is no way to reach a directory beside or above it, and the path it
+can build is limited to 47 characters --- a directory nested deeper than that
+cannot be entered.
+
+If a directory will not open --- because the card was changed, or the name is
+no longer there --- \ccprod{} says \msg{cannot open that directory} and stays
+where it was.
+\end{ccnote}
+
+\subsection{Long lists}
+
+The list holds at most \textbf{sixty-four} entries and shows sixteen at a time,
+scrolling as the selection moves. A \lit{\^{}} at the top right of the list
+means there is more above; a \lit{v} at the bottom right means there is more
+below.
+
+Entries are sorted, so a workbook is where you would expect to find it.
+
 \begin{cccaution}
-The list holds at most \textbf{thirty-two} files, it is not sorted, and it does
-not scroll. If the directory contains more than thirty-two \fname{.X16S} files
-the ones past the thirty-second cannot be reached from this dialogue at all,
-and there is no indication that they were left out. Keep workbooks in
-directories of a manageable size.
+A directory holding more than sixty-four entries is listed as far as the
+sixty-fourth and no further, with nothing said about what was left out.
+Directories count towards that total. Keep workbooks in directories of a
+manageable size --- which is what the subdirectories are for.
 \end{cccaution}
 
-If there are no matching files at all, \ccprod{} says \msg{no matching files on
+If there is nothing to show at all, \ccprod{} says \msg{no matching files on
 the card} and abandons the command.
 
 \subsection{What happens when a workbook loads}
@@ -166,11 +211,28 @@ of the name, type it.
 \section{Where files are read and written}
 \index{device number}
 
-\ccprod{} uses device 8 for everything. There is no way to change it from the
-program, and no way to change directory: files are read from and written to
-whichever directory was current when the program started.
+\ccprod{} uses device 8 for everything, and there is no way to change that from
+the program.
 
-Under the emulator, that is the directory named by \lit{-fsroot}.
+Everything is relative to the directory \ccprod{} was started in --- under the
+emulator, the one named by \lit{-fsroot}. Two things follow, and they are worth
+keeping straight:
+
+\begin{ccsteps}
+\item \textbf{\menupath{Open} always starts at the top.} Browsing into a
+subdirectory is not remembered: the next \menupath{Open} or \menupath{Import}
+begins at the starting directory again.
+\item \textbf{But the path travels with the workbook.} A workbook opened from
+\lit{ACCOUNTS} is remembered as \lit{ACCOUNTS/BUDGET.X16S}, so \key{F4}
+\menupath{Save} writes it back where it came from.
+\end{ccsteps}
+
+\begin{cccaution}
+\menupath{Save as} and \menupath{Export} ask for a name rather than showing the
+list, and \textbf{that name is relative to the starting directory}, not to
+wherever you last browsed. To write into a subdirectory, type the path:
+\lit{ACCOUNTS/BUDGET.X16S}.
+\end{cccaution}
 
 \section{The workbook name on screen}
 

@@ -306,7 +306,7 @@ data to land.
 \item \textbf{A CSV is read in at the cursor. An XLSX replaces the whole
 workbook.} Save first.
 \item The list shows only \fname{.XLSX} and \fname{.CSV} files, and only the
-first thirty-two of them.
+first sixty-four entries.
 \item The dialogue is titled \msg{Open}.
 \item Formulas an XLSX contains that \ccprod{} cannot compile are kept as their
 last calculated values and will not update. See Chapter~\ref{ch:importexport}.
@@ -388,8 +388,13 @@ Loads a \fname{.X16S} workbook.
 
 \ccrunin{Notes}
 \begin{ccsteps}
-\item The list holds \textbf{at most thirty-two} files, unsorted, and does not
-scroll.
+\item The list holds \textbf{at most sixty-four} entries, sorted, sixteen shown
+at a time, with \lit{\^{}} and \lit{v} marking more above and below.
+\item Subdirectories are listed first, as \lit{/NAME}; \lit{/..} goes back up.
+Selecting one and pressing \key{Return} lists it. The path is shown on the
+title row.
+\item Browsing is not remembered --- the next \menupath{Open} starts at the
+directory \ccprod{} was started in.
 \item Only \fname{.X16S} files are listed.
 \item An invalid file is rejected before the workbook in memory is touched. A
 file that fails part way through loading leaves an empty workbook.

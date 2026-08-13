@@ -54,6 +54,7 @@ runs on the machine itself — there is no host-side converter.
 - Saves are atomic: written to a temporary file, read back and verified
   before replacing the original, so an interrupted save leaves the previous
   workbook intact
+- The Open dialog browses subdirectories, sorted, 64 entries a directory
 
 **Charting**
 
