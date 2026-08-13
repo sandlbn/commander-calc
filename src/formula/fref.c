@@ -402,6 +402,8 @@ uint8_t formula_paste(uint16_t row, uint16_t col, uint8_t restart)
             uint16_t dc = (uint16_t)(col + c);
 
             off = clip_at(off, shift_in, sizeof shift_in);
+            ++off;                      /* the style byte, written by the
+                                         * copy beside each entry's NUL */
             if (shift_in[0] != '=')
                 continue;
             if (dr >= X16S_MAX_ROWS || dc >= X16S_MAX_COLS)

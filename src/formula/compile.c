@@ -646,11 +646,29 @@ err_t formula_compile_batch(handle_t list, uint16_t n, uint16_t *compiled)
          * given it. A SUM over a currency column came back as 3531.18
          * instead of $3531.18, and with the two-decimal format gone the MBF
          * mantissa showed through as 7.12999994. Carry the style over. */
-        if (strpool_get(sid, src_text, sizeof src_text) != 0) {
+        /* Read one byte in, so a '=' can be put in front of it.
+         *
+         * .xlsx stores a formula's text WITHOUT the '=' that makes it one:
+         * the <f> element holds "SUM(B1:B9)". formula_set() interns
+         * whatever it is given as the cell's source, and that source is
+         * what the formula bar shows and what the clipboard copies -- so
+         * without this an imported formula, copied and pasted, arrives as
+         * a LABEL reading "SUM(B1:B9)". Re-editing one turned it into a
+         * label too.
+         *
+         * Sources that already carry a '=' -- a .X16S, or an .xlsx that
+         * spelled it out -- are passed through untouched. */
+        if (strpool_get(sid, src_text + 1, sizeof src_text - 1) != 0) {
             cell_record_t before, after;
+            char *text = src_text + 1;
             uint8_t had = wb_get(row, col, &before);
 
-            if (formula_set(row, col, src_text) == ERR_OK) {
+            if (*text != '=') {
+                src_text[0] = '=';
+                text = src_text;
+            }
+
+            if (formula_set(row, col, text) == ERR_OK) {
                 if (had && before.style && wb_get(row, col, &after)) {
                     /* Straight into the store, NOT through wb_set().
                      *
