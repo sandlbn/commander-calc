@@ -27,7 +27,7 @@ static void from_petscii(char *dst, const char *src, uint8_t max)
     while (src[i] && i < (uint8_t)(max - 1)) {
         unsigned char c = (unsigned char)src[i];
         if (c >= 0xC1 && c <= 0xDA)
-            c = (unsigned char)(c - 0xC1 + 'a');
+            c = (unsigned char)(c - 0xC1 + 'A');
         dst[i] = (char)c;
         ++i;
     }
@@ -35,14 +35,14 @@ static void from_petscii(char *dst, const char *src, uint8_t max)
 }
 
 /* The inverse, for a name being handed back to CMDR-DOS. */
-static void to_petscii(char *dst, const char *src, uint8_t max)
+static void to_dosname(char *dst, const char *src, uint8_t max)
 {
     uint8_t i = 0;
 
     while (src[i] && i < (uint8_t)(max - 1)) {
         char c = src[i];
         if (c >= 'a' && c <= 'z')
-            c = (char)(c - 'a' + 0xC1);
+            c = (char)(c - 'a' + 'A');
         dst[i] = c;
         ++i;
     }
@@ -98,7 +98,7 @@ static err_t dos_cmd(const char *c)
  * from_petscii() is not reversible, and that is the whole reason this is
  * two attempts rather than one. It maps $C1-$DA down to 'a'-'z' and leaves
  * everything else, so a name delivered as PLAIN ASCII lowercase comes back
- * out shifted by to_petscii() and names a different file: "obj" is asked
+ * out shifted by to_dosname() and names a different file: "obj" is asked
  * for as "OBJ", and the DOS answers 62.
  *
  * Real CMDR-DOS hands back shifted PETSCII, where the round trip is exact.
@@ -113,7 +113,7 @@ err_t dir_chdir(const char *name)
     cmd[1] = 'D';                       /* agree there, so no translation */
     cmd[2] = ':';
 
-    to_petscii(cmd + 3, name, (uint8_t)(sizeof cmd - 3));
+    to_dosname(cmd + 3, name, (uint8_t)(sizeof cmd - 3));
     e = dos_cmd(cmd);
     if (e == ERR_OK)
         return e;

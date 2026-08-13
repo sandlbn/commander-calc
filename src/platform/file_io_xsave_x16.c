@@ -7,8 +7,6 @@
 
 #define FILEIO_NO_SEGMENT
 #define FILEIO_STREAM_ONLY      /* opens, writes, closes; never renames */
-#define FILEIO_NO_PATHS         /* Export prompts for a name; it is
-                                 * never one the file list handed us */
 
 #ifdef __CC65__
 #  pragma code-name (push, "OVERLAY12")

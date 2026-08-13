@@ -32,48 +32,32 @@ extern uint8_t __fastcall__ dos_command(const char *cmd, uint8_t len,
  * different overlay and must be able to ask for it. */
 #define device file_device()
 
-/* Filenames cross into the KERNAL as PETSCII. With src/charmap.h in force
- * our literals are plain ASCII, and the two encodings agree on digits,
- * punctuation and uppercase A-Z — so only lowercase needs moving, into the
- * PETSCII shifted range where CMDR-DOS expects it. */
-/* ASCII to PETSCII, EXCEPT for a name carrying a path.
+/* Filenames reach the card in UPPERCASE ASCII.
  *
- * The mapping exists for names the user types, which arrive as ASCII and
- * have to reach the card as PETSCII. A name with a '/' in it did not come
- * from the keyboard -- it came out of the directory listing, already in
- * whatever encoding the card handed over, and converting it a second time
- * changes it. On the emulator's host filesystem a directory called "obj"
- * goes out as $CF $C2 $CA, which reads back as "OBJ": a different directory
- * on anything that tells the two apart, so the file is not found.
+ * Uppercase A-Z, the digits, '.' and '/' are the same byte in ASCII and in
+ * unshifted PETSCII, so an uppercase name needs no translation at all and
+ * is understood by both a real CMDR-DOS and the emulator's host
+ * filesystem. Lowercase is not: mapping it into PETSCII's shifted range
+ * gives $C1-$DA, which the emulator converts to ISO and writes to the host
+ * as accented capitals -- a workbook saved as "totals.x16s" arrived on the
+ * card as "\xd4\xcf\xd4\xc1\xcc.\xd8" and could not be opened again.
  *
- * The dialog cannot pre-compensate for this, because the bytes it would
- * have to send are exactly the ones this would convert.
+ * So lowercase is folded up rather than shifted, which also means a name
+ * out of the listing and a name off the keyboard end up identical. That is
+ * what makes a browsed path openable: both halves of "DATA/SHEET.X16S"
+ * survive this unchanged, however they were arrived at.
  *
- * FILEIO_NO_PATHS drops the test in the copies that can never be handed
- * one -- the .xlsx writer takes its name from a prompt, never from the
- * listing -- because those two overlays have no room for it. */
-static void to_petscii(char *dst, const char *src, uint8_t max)
+ * The cost is that a genuinely lowercase file on the card cannot be named.
+ * CMDR-DOS shows filenames uppercase and the X16 world writes them that
+ * way, so that is a corner rather than a case. */
+static void to_dosname(char *dst, const char *src, uint8_t max)
 {
     uint8_t i = 0;
-#ifndef FILEIO_NO_PATHS
-    uint8_t conv = 1;
-
-    while (src[i])
-        if (src[i++] == '/') {
-            conv = 0;
-            break;
-        }
-    i = 0;
-#endif
 
     while (src[i] && i < (uint8_t)(max - 1)) {
         char c = src[i];
-#ifdef FILEIO_NO_PATHS
         if (c >= 'a' && c <= 'z')
-#else
-        if (conv && c >= 'a' && c <= 'z')
-#endif
-            c = (char)(c - 'a' + 0xC1);
+            c = (char)(c - 'a' + 'A');
         dst[i] = c;
         ++i;
     }
@@ -137,7 +121,7 @@ static err_t send_command(const char *cmd)
 {
     char pet[64];
 
-    to_petscii(pet, cmd, sizeof pet);
+    to_dosname(pet, cmd, sizeof pet);
     if (cbm_open(LFN_CMD, device, SA_CMD, pet) != 0)
         return ERR_IO;
     cbm_close(LFN_CMD);
@@ -166,7 +150,7 @@ err_t file_open_read(fstream_t *f, const char *name)
         full[n++] = ',';
         full[n++] = 'R';
         full[n] = '\0';
-        to_petscii(pet, full, sizeof pet);
+        to_dosname(pet, full, sizeof pet);
     }
 #ifdef FILEIO_WANT_SEEK
     {   /* Remember it: a backward seek has to reopen the channel. Only the
@@ -215,7 +199,7 @@ err_t file_open_write(fstream_t *f, const char *name)
     full[n++] = 'W';
     full[n] = '\0';
 
-    to_petscii(pet, full, sizeof pet);
+    to_dosname(pet, full, sizeof pet);
     if (cbm_open(LFN_DATA, device, CBM_SEQ, pet) != 0)
         return ERR_IO;
     return read_status();

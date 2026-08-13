@@ -48,6 +48,10 @@ static const char S_5[] = "Save workbook as";
 static const char S_6[] = "RETURN accept   ESC cancel";
 static const char S_7[] = "Name:";
 static const char S_8[] = "end it .XLSX for Excel, .CSV for plain text";
+/* Save as writes the native format; only Export offers the other two, and
+ * naming the wrong pair here is how a workbook gets saved as .XLSX by a
+ * user who was told to. */
+static const char S_9[] = "end it .X16S";
 static const char S_yes[] = "[  Yes  ]";
 static const char S_no[]  = "[  No   ]";
 
@@ -713,7 +717,7 @@ uint8_t filedlg_ask(uint8_t cmd, char *name, uint8_t max)
     default:
         break;
     }
-    if (!dlg_prompt(S_5, S_8, name, max))
+    if (!dlg_prompt(S_5, cmd == FC_EXPORT ? S_8 : S_9, name, max))
         return 0;
     dlg_busy(S_5, name);
     return 1;
@@ -751,7 +755,7 @@ uint8_t dlg_discard(uint8_t what)
 
 uint8_t filedlg_save_as(char *name, uint8_t max)
 {
-    return dlg_prompt(S_5, S_8, name, max);
+    return dlg_prompt(S_5, S_9, name, max);
 }
 
 void dlg_failed(uint8_t what, err_t e)

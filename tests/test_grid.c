@@ -1175,6 +1175,39 @@ static void test_freeze_cursor_in_the_heading(void)
     CHECK(!at(0, ROW_GRID0 + 1, "    2"));      /* still scrolled down */
 }
 
+/* At A1, Freeze keeps the first row and column.
+ *
+ * The corner is the cursor, so what is frozen is what lies ABOVE and LEFT
+ * of it -- which at A1 is nothing. Freezing nothing also leaves both counts
+ * at 0, so the next press would be another attempt rather than the unfreeze
+ * the user expects, and the command reads as broken. A1 therefore means the
+ * obvious thing instead. */
+static void test_freeze_at_a1_keeps_the_headings(void)
+{
+    freeze_setup();
+    grid_goto(0, 0);
+    grid_key(MENU_FREEZE);
+
+    CHECK_EQ(grid_state()->frz_row, 1);
+    CHECK_EQ(grid_state()->frz_col, 1);
+
+    /* And it is a toggle again, which it could not be at 0. */
+    grid_key(MENU_FREEZE);
+    CHECK_EQ(grid_state()->frz_row, 0);
+    CHECK_EQ(grid_state()->frz_col, 0);
+}
+
+/* The heading really is pinned after freezing from A1. */
+static void test_freeze_from_a1_pins_the_row(void)
+{
+    freeze_setup();
+    grid_goto(0, 0);
+    grid_key(MENU_FREEZE);
+
+    grid_goto(150, 1);
+    CHECK(at(6, ROW_GRID0, "corner"));      /* row 1 still on top */
+}
+
 /* Freezing again unfreezes: one command, and the only way back. */
 static void test_freeze_toggles(void)
 {
@@ -2204,6 +2237,8 @@ void test_grid(void)
     test_function_names_survive();
     test_freeze_pins_the_heading_row();
     test_freeze_cursor_in_the_heading();
+    test_freeze_at_a1_keeps_the_headings();
+    test_freeze_from_a1_pins_the_row();
     test_freeze_toggles();
     test_freeze_refuses_to_fill_the_screen();
     test_find();

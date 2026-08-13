@@ -353,11 +353,12 @@ static uint8_t col_visible_w(uint16_t col)
  * screen on their own. Measured rather than capped at some round number:
  * column widths come out of the imported file and four of them can be
  * anything from 12 characters to the whole row. */
-static uint8_t freeze_cols_fit(void)
+/* Would freezing `upto` columns still leave room for a scrolling one? */
+static uint8_t freeze_cols_fit(uint16_t upto)
 {
     uint16_t c, x = GRID_ROWHDR_W;
 
-    for (c = 0; c < grid.cur_col; ++c)
+    for (c = 0; c < upto; ++c)
         x += col_w(c);
     return x + GRID_DEF_COL_W <= screen_cols();
 }
@@ -585,6 +586,9 @@ static void render_tabs(void)
 }
 
 static const char S_recalc[] = "CALC";
+/* Freeze keeps what is above and left of the cursor, and refuses when the
+ * frozen part would leave nothing to scroll. */
+static const char S_nofrz[] = "Nothing to freeze here";
 /* Patched in place rather than painted a character at a time -- four
  * screen_put calls cost more resident bytes than this whole feature is
  * allowed to spend, and four stores into a string cost almost nothing. */
@@ -947,9 +951,17 @@ static void do_file(uint8_t cmd)
     if (dialogs() != ERR_OK)
         return;
 
+    /* What the prompt starts with. Save reuses the workbook's own name;
+     * Save as and Export SUGGEST one rather than opening empty -- the
+     * workbook's if it has been saved, otherwise whatever the last command
+     * named, which after an import is the file it came from. Everything
+     * else starts blank, because it is about to choose a name of its own. */
     if (cmd == FC_SAVE)
-        strcpy(file_name, cur_name);    /* it may already have one */
-    else if (cmd != FC_SAVEAS)
+        strcpy(file_name, cur_name);
+    else if (cmd == FC_SAVEAS || cmd == FC_EXPORT) {
+        if (cur_name[0])
+            strcpy(file_name, cur_name);
+    } else
         file_name[0] = '\0';
 
     if (!filedlg_ask(cmd, file_name, sizeof file_name)) {
@@ -1095,7 +1107,9 @@ again:
         break;
     }
 
-    case K_FREEZE:
+    case K_FREEZE: {
+        uint16_t r, c;
+
         /* One command, not two: frozen already means unfreeze. Freezing
          * takes the cursor as the corner, the way Excel does -- put the
          * cursor on the first row of the data and in the first column of
@@ -1108,17 +1122,36 @@ again:
         if (grid.frz_row || grid.frz_col) {
             grid.frz_row = grid.frz_col = 0;
         } else {
-            if (grid.cur_row < (uint16_t)(grid.grid_rows >> 1))
-                grid.frz_row = (uint8_t)grid.cur_row;
-            if (freeze_cols_fit())
-                grid.frz_col = (uint8_t)grid.cur_col;
+            /* At A1 there is nothing above or left of the cursor, so the
+             * corner rule would freeze nothing and leave both counts at 0
+             * -- after which the next press is another attempt rather than
+             * the unfreeze the user is now expecting. A command that does
+             * nothing and cannot be undone reads as a broken one, so A1 is
+             * taken to mean the obvious thing instead: keep the first row
+             * and the first column. Anywhere else, the cursor is the
+             * corner. */
+            r = grid.cur_row ? grid.cur_row : 1;
+            c = grid.cur_col ? grid.cur_col : 1;
+
+            if (r < (uint16_t)(grid.grid_rows >> 1))
+                grid.frz_row = (uint8_t)r;
+            if (freeze_cols_fit(c))
+                grid.frz_col = (uint8_t)c;
             grid.top_row = grid.frz_row;
             grid.left_col = grid.frz_col;
+
+            /* The guards above refuse a corner that would leave nothing to
+             * scroll -- a cursor far down the sheet, or so far right that
+             * no whole column would be left. Both used to decline in
+             * silence, which reads as a command that does not work. */
+            if (!grid.frz_row && !grid.frz_col)
+                grid_set_status(S_nofrz);
         }
         /* No ensure_visible(): the cursor is the corner it just froze at,
          * which is the first scrolling cell and so visible by definition. */
         grid_render_all();
         break;
+    }
 
     case K_CALC_AUTO:
         /* Switching back to automatic recalculates at once if anything was

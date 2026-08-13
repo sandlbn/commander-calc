@@ -93,7 +93,8 @@ SMALLFLAGS := $(X16FLAGS) --codesize 90
 #
 # Note the cliff runs the other way here than it does for src/workbook:
 # lower is bigger. Measure before moving anything in or out of this group.
-TINY_DIRS := src/ui/filedlg.c src/platform/filedir_x16.c src/ui/menu.c
+TINY_DIRS := src/ui/filedlg.c src/platform/filedir_x16.c src/ui/menu.c \
+             src/ui/grid.c
 TINYFLAGS := $(X16FLAGS) --codesize 100
 ccflags = $(if $(filter $(TINY_DIRS),$1),$(TINYFLAGS),\
             $(if $(filter $(CODESIZE_DIRS),$1),$(SMALLFLAGS),$(X16FLAGS)))
