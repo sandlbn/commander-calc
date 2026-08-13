@@ -863,7 +863,7 @@ static uint8_t is_xlsx(const char *name)
  * has about 127 bytes to spare at the bottom of an import. A filename is
  * not what to spend those on. */
 X16S_GOLDEN_BEGIN
-static char file_name[FILE_NAME_MAX];
+static char file_name[X16S_PATH_MAX];
 X16S_GOLDEN_END
 
 /* Do the work the command names, with the overlay that does it loaded.

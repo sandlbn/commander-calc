@@ -41,6 +41,7 @@ void test_xlsx_export(void);
 void test_menu(void);
 void test_sheets(void);
 void test_strings(void);
+void test_filedlg(void);
 
 static const struct {
     const char *name;
@@ -67,6 +68,7 @@ static const struct {
     { "menu",     test_menu     },
     { "sheets",   test_sheets   },
     { "strings",  test_strings  },
+    { "filedlg",  test_filedlg  },
 };
 
 int main(void)

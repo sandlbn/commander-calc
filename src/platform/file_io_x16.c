@@ -36,13 +36,43 @@ extern uint8_t __fastcall__ dos_command(const char *cmd, uint8_t len,
  * our literals are plain ASCII, and the two encodings agree on digits,
  * punctuation and uppercase A-Z — so only lowercase needs moving, into the
  * PETSCII shifted range where CMDR-DOS expects it. */
+/* ASCII to PETSCII, EXCEPT for a name carrying a path.
+ *
+ * The mapping exists for names the user types, which arrive as ASCII and
+ * have to reach the card as PETSCII. A name with a '/' in it did not come
+ * from the keyboard -- it came out of the directory listing, already in
+ * whatever encoding the card handed over, and converting it a second time
+ * changes it. On the emulator's host filesystem a directory called "obj"
+ * goes out as $CF $C2 $CA, which reads back as "OBJ": a different directory
+ * on anything that tells the two apart, so the file is not found.
+ *
+ * The dialog cannot pre-compensate for this, because the bytes it would
+ * have to send are exactly the ones this would convert.
+ *
+ * FILEIO_NO_PATHS drops the test in the copies that can never be handed
+ * one -- the .xlsx writer takes its name from a prompt, never from the
+ * listing -- because those two overlays have no room for it. */
 static void to_petscii(char *dst, const char *src, uint8_t max)
 {
     uint8_t i = 0;
+#ifndef FILEIO_NO_PATHS
+    uint8_t conv = 1;
+
+    while (src[i])
+        if (src[i++] == '/') {
+            conv = 0;
+            break;
+        }
+    i = 0;
+#endif
 
     while (src[i] && i < (uint8_t)(max - 1)) {
         char c = src[i];
+#ifdef FILEIO_NO_PATHS
         if (c >= 'a' && c <= 'z')
+#else
+        if (conv && c >= 'a' && c <= 'z')
+#endif
             c = (char)(c - 'a' + 0xC1);
         dst[i] = c;
         ++i;

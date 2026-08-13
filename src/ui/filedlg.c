@@ -40,6 +40,10 @@ static const char S_1[] = "Y = yes, any other key = no";
 static const char S_2[] = "Open";
 static const char S_3[] = "no matching files on the card";
 static const char S_4[] = "up/down select   RETURN open   ESC cancel";
+/* The path shown when the dialog is at the directory the program started
+ * in, which has no name of its own. */
+static const char S_here[] = ".";
+static const char S_nodir[] = "cannot open that directory";
 static const char S_5[] = "Save workbook as";
 static const char S_6[] = "RETURN accept   ESC cancel";
 static const char S_7[] = "Name:";
@@ -77,7 +81,15 @@ static const char S_no[]  = "[  No   ]";
  * -- the overlay images alone are seventeen -- or the list fills with .BIN
  * files and no workbook is ever shown. The extension filter below is the
  * other half of that. */
-#define LIST_MAX  32
+/* The list scrolls, so this is no longer bounded by the screen -- only by
+ * the banked RAM it costs, which is LIST_MAX * FILE_NAME_MAX and plentiful.
+ * Entries past it are still dropped silently; a card with more than this
+ * many workbooks in one directory is the case that is left. */
+#define LIST_MAX  64
+
+/* Rows of the list on screen at once. The box is this tall plus its
+ * furniture, so it has to leave room below row 4 on a 60-row screen. */
+#define VIS       16
 
 /* The listing lives in banked RAM, reached through a handle. It cannot go in
  * the overlay (an overlay's data is whatever the last load left behind) and
@@ -90,7 +102,25 @@ static const char S_no[]  = "[  No   ]";
 X16S_GOLDEN_BEGIN
 static handle_t names_h;
 static uint8_t  name_count;
+
+/* Where the dialog is browsing, relative to the directory the program
+ * started in; "" is that directory. Only ever descends, so ".." is offered
+ * only when it is non-empty and the path cannot outgrow the buffer.
+ *
+ * Reset by filedlg_open() rather than kept between commands: a path is only
+ * meaningful while the card has not changed underneath it. */
+static char cwd[X16S_PATH_MAX];
+
+/* First row of the list on screen. Kept beside the selection rather than
+ * derived from it, so moving the cursor inside the window does not scroll. */
+static uint8_t top;
 X16S_GOLDEN_END
+
+/* A stored entry beginning with '/' is a directory. Free -- it needs no
+ * second array and no wider stride -- it reads as "/DATA" on screen, and
+ * '/' is 0x2F, below both digits and letters, so directories sort first
+ * without being a special case in the comparison. */
+#define IS_DIR(row) ((row)[0] == '/')
 
 static void name_get(uint8_t i, char *out)
 {
@@ -251,29 +281,123 @@ static uint8_t has_any_ext(const char *n, const char *exts)
     return 0;
 }
 
+/* Append `src` to `dst` from offset `n`, and say how long it is now.
+ *
+ * Three things here build a string a byte at a time -- a list row, a path
+ * being descended, a path being handed back. One shared loop is worth more
+ * than the argument passing costs it. */
+static uint8_t apn(char *dst, uint8_t n, const char *src, uint8_t max)
+{
+    while (*src && n < (uint8_t)(max - 1))
+        dst[n++] = *src++;
+    dst[n] = '\0';
+    return n;
+}
+
+/* Put one entry in the list, in its sorted place, directories marked.
+ *
+ * Inserted rather than sorted afterwards: the list is short, the comparison
+ * is a strcmp of two rows already in the format they are drawn in, and a
+ * separate pass would need somewhere to put the rows it is moving.
+ *
+ * The '/' does the grouping for free. It is 0x2F, below every digit and
+ * letter, so directories land above files without the comparison knowing
+ * anything about them -- and ".." sorts above the rest of the directories
+ * because '.' is 0x2E, so the way out is always the first row. */
+static void add(const char *name, uint8_t is_dir)
+{
+    char row[FILE_NAME_MAX], other[FILE_NAME_MAX];
+    uint8_t i = name_count;
+
+    if (name_count >= LIST_MAX)
+        return;
+    row[0] = '/';                       /* used only when is_dir moves n */
+    apn(row, is_dir, name, FILE_NAME_MAX);
+
+    while (i) {
+        name_get((uint8_t)(i - 1), other);
+        if (strcmp(other, row) <= 0)
+            break;
+        bank_write(names_h, (uint16_t)(i * FILE_NAME_MAX),
+                   other, FILE_NAME_MAX);
+        --i;
+    }
+    bank_write(names_h, (uint16_t)(i * FILE_NAME_MAX), row, FILE_NAME_MAX);
+    ++name_count;
+}
+
+/* Read the directory `cwd` names into the list: directories first, then the
+ * files whose extension matches. */
 static void scan(const char *ext)
 {
     file_entry_t e;
 
+    bank_free(names_h);                 /* a rescan per directory change */
     name_count = 0;
     names_h = bank_calloc(LIST_MAX * FILE_NAME_MAX);
     if (names_h == H_NULL)
         return;
+
+    /* The way back out, and the only entry that is not on the card. CMDR-DOS
+     * does list "." and ".." inside a subdirectory but the host does not, so
+     * this is synthesised on both and the real ones are skipped below. */
+    if (cwd[0])
+        add("..", 1);
+
     if (dir_open() != ERR_OK)
         return;
     while (name_count < LIST_MAX && dir_next(&e)) {
-        if (e.is_dir || !has_any_ext(e.name, ext))
-            continue;
-        bank_write(names_h, (uint16_t)(name_count * FILE_NAME_MAX),
-                   e.name, FILE_NAME_MAX);
-        ++name_count;
+        if (e.is_dir) {
+            if (e.name[0] != '.')       /* skip "." and ".." */
+                add(e.name, 1);
+        } else if (has_any_ext(e.name, ext)) {
+            add(e.name, 0);
+        }
     }
     dir_close();
 }
 
-/* Release the listing and hand back the caller's answer. */
+/* Change into `name`, or up one level for "..", keeping cwd in step with
+ * the machine's own directory. Returns 0 if the card refused. */
+static uint8_t cwd_step(const char *name)
+{
+    uint8_t n = 0;
+
+    if (dir_chdir(name) != ERR_OK)
+        return 0;
+
+    if (name[0] == '.') {               /* ".." -- back one level */
+        while (cwd[n])
+            ++n;
+        while (n && cwd[n - 1] != '/')
+            --n;
+        if (n)
+            --n;                        /* the separator itself */
+        cwd[n] = '\0';
+        return 1;
+    }
+
+    while (cwd[n])
+        ++n;
+    if (n)
+        cwd[n++] = '/';
+    apn(cwd, n, name, X16S_PATH_MAX);
+    return 1;
+}
+
+/* Release the listing, climb back to the directory the program started in,
+ * and hand back the caller's answer.
+ *
+ * THE CLIMB IS NOT OPTIONAL. Browsing changes the machine's own directory,
+ * and overlays load by bare name -- leaving it anywhere else means the next
+ * menu or file command cannot find its own code. Every exit from the picker
+ * goes through here. */
 static uint8_t finish(uint8_t r)
 {
+    while (cwd[0])
+        if (!cwd_step(".."))
+            break;                      /* the card is gone; nothing else
+                                         * we can do about it here */
     bank_free(names_h);
     names_h = H_NULL;
     return r;
@@ -354,6 +478,9 @@ uint8_t filedlg_open(const char *ext, char *name_out, uint8_t max)
 {
     uint8_t sel = 0, i;
 
+    cwd[0] = '\0';                      /* every command starts at the top */
+    top = 0;
+    names_h = H_NULL;
     scan(ext);
 
     if (name_count == 0) {
@@ -362,28 +489,61 @@ uint8_t filedlg_open(const char *ext, char *name_out, uint8_t max)
     }
 
     for (;;) {
-        uint8_t k;
+        uint8_t k, shown;
 
-        box(4, (uint8_t)(name_count + 3), S_2);
-        for (i = 0; i < name_count; ++i) {
+        /* Scroll only as far as it takes to bring the selection back into
+         * view, so the window follows the cursor rather than centring on
+         * it. */
+        if (sel < top)
+            top = sel;
+        else if (sel >= (uint8_t)(top + VIS))
+            top = (uint8_t)(sel - VIS + 1);
+
+        shown = name_count - top < VIS ? (uint8_t)(name_count - top) : VIS;
+
+        /* ALWAYS THE FULL HEIGHT, however few entries there are. A box
+         * drawn to fit the list leaves the taller previous one's rows on
+         * screen when a directory holds fewer files than the one before
+         * it, and those rows still read as a listing. */
+        box(4, VIS + 3, S_2);
+        /* Where the list is, on the title row after the title. Without it
+         * two directories holding the same names are indistinguishable. */
+        screen_text((uint8_t)(DLG_X + 8), 4, cwd[0] ? cwd : S_here,
+                    (uint8_t)(DLG_W - 10), C_TITLE);
+        for (i = 0; i < shown; ++i) {
             char row[FILE_NAME_MAX];
-            name_get(i, row);
+            name_get((uint8_t)(top + i), row);
             screen_text(DLG_X + 2, (uint8_t)(5 + i), row,
-                        (uint8_t)(DLG_W - 4), i == sel ? C_SEL : C_DLG);
+                        (uint8_t)(DLG_W - 4),
+                        (uint8_t)(top + i) == sel ? C_SEL : C_DLG);
         }
-        screen_text(DLG_X + 2, (uint8_t)(5 + name_count),
+        /* Say which way there is more, or the list looks complete. */
+        if (top)
+            screen_put((uint8_t)(DLG_X + DLG_W - 3), 5, '^', C_DLG);
+        if ((uint16_t)(top + shown) < name_count)
+            screen_put((uint8_t)(DLG_X + DLG_W - 3),
+                       (uint8_t)(4 + VIS), 'v', C_DLG);
+
+        screen_text(DLG_X + 2, 5 + VIS,
                     S_4,
                     (uint8_t)(DLG_W - 4), C_DLG);
 
         hot_y = 5;
-        hot_n = name_count;
+        hot_n = shown;
         k = dlg_wait();
 
         if (dlg_cy != 0xFF && k == K_RETURN) {
             /* A click on the list. The first one on a row selects it and
              * the next one opens it: single-click-to-open would mean a
              * mis-aimed click loads a workbook over the one on screen. */
-            uint8_t hit = (uint8_t)(dlg_cy - 5);
+            uint8_t hit = (uint8_t)(top + dlg_cy - 5);
+
+            /* A click below the last entry lands in the empty part of the
+             * box. It is not a row: taking it would read past the end of
+             * the list and try to open whatever the previous directory
+             * left in that slot. */
+            if (hit >= name_count)
+                continue;
             if (hit != sel) {
                 sel = hit;
                 continue;
@@ -397,11 +557,34 @@ uint8_t filedlg_open(const char *ext, char *name_out, uint8_t max)
         else if (k == K_RETURN) {
             char row[FILE_NAME_MAX];
             name_get(sel, row);
-            strncpy(name_out, row, max - 1);
-            name_out[max - 1] = '\0';
-            return 1;
+
+            if (IS_DIR(row)) {
+                /* Change what is being browsed and start again. An empty
+                 * directory is still worth entering -- ".." is always there
+                 * to get back out -- so a rescan cannot dead-end. */
+                if (cwd_step(row + 1)) {
+                    scan(ext);
+                } else {
+                    dlg_message(S_2, S_nodir);
+                }
+                sel = 0;
+                top = 0;
+                continue;
+            }
+
+            /* The path travels with the name: the working directory is put
+             * back before this returns, so a bare name would be looked for
+             * in the wrong place. */
+            {
+                uint8_t n = apn(name_out, 0, cwd, max);
+
+                if (n)
+                    name_out[n++] = '/';
+                apn(name_out, n, row, max);
+            }
+            return finish(1);
         } else if (k == K_ESC)
-            return 0;
+            return finish(0);
     }
 }
 

@@ -70,7 +70,25 @@ CODESIZE_DIRS := src/workbook/% src/platform/banked_ram.c
 SMALLFLAGS := $(X16FLAGS) --codesize 90
 
 # Pick the flags for one source file.
-ccflags = $(if $(filter $(CODESIZE_DIRS),$1),$(SMALLFLAGS),$(X16FLAGS))
+# The file dialog is squeezed from the other side. OVERLAY1 is a fixed 7936
+# bytes shared with sheet_admin.c and errors.c, and directory browsing did
+# not fit in what was left -- 402 bytes over.
+#
+# -Osir leaves cc65 at some codesize other than 100, and for THESE TWO FILES
+# saying 100 outright is what fits. Measured on a clean build each time,
+# because a partial one links against stale objects and hides the overflow:
+#
+#   -Osir alone   402 over        --codesize 130   708 free
+#   --codesize 40 726 over        --codesize 150   708 free
+#   --codesize 90 444 over        --codesize 200   294 over
+#   --codesize 100   715 FREE
+#
+# Note the cliff runs the other way here than it does for src/workbook:
+# lower is bigger. Measure before moving anything in or out of this group.
+TINY_DIRS := src/ui/filedlg.c src/platform/filedir_x16.c
+TINYFLAGS := $(X16FLAGS) --codesize 100
+ccflags = $(if $(filter $(TINY_DIRS),$1),$(TINYFLAGS),\
+            $(if $(filter $(CODESIZE_DIRS),$1),$(SMALLFLAGS),$(X16FLAGS)))
 
 LDFLAGS  := -t cx16 -C cfg/x16sheet.cfg -m $(BUILD)/x16sheet.map \
             -Ln $(BUILD)/labels.txt

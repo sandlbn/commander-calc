@@ -57,12 +57,38 @@ err_t file_remove(const char *name);
 err_t file_rename(const char *from, const char *to);
 
 /* --- directory listing, for the file dialog --- */
+
+/* A path below the directory the program started in, as "DATA/SUB", or ""
+ * for the start directory itself. Longer than a name because it carries
+ * one: a chosen file comes back as "DATA/SHEET.X16S".
+ *
+ * FILE_NAME_MAX deliberately does NOT change with it -- that sizes
+ * fstream_t.petname and the locals in every overlay's copy of the file
+ * layer, and both the overlay ceiling and the C stack are nearly spent. */
+#define X16S_PATH_MAX 48
+
 typedef struct {
     char     name[FILE_NAME_MAX];
     uint16_t blocks;
     uint8_t  is_dir;
 } file_entry_t;
 
+/* Change into one directory, or ".." to go back up.
+ *
+ * CMDR-DOS can only list the CURRENT directory -- a path given in the "$"
+ * name is taken as a wildcard, not a path -- so browsing a subdirectory
+ * means changing into it.
+ *
+ * WHOEVER DESCENDS MUST CLIMB BACK before returning to the grid. Overlays
+ * load by bare name, so the program cannot find its own code from anywhere
+ * but the directory it started in. See docs/design/files.md. */
+err_t   dir_chdir(const char *name);
+
+/* The DOS reply to the last dir_chdir(), as two hex-ish digits, or $EE if
+ * the command channel could not be read. 0 means it worked. */
+extern uint8_t dir_status;
+
+/* List the current directory. */
 err_t   dir_open(void);
 uint8_t dir_next(file_entry_t *e);      /* 1 while entries remain */
 void    dir_close(void);
