@@ -26,6 +26,33 @@ static void setup(void)
     file_host_set_root("build/host/sd");
 }
 
+/* An imported formula must keep the '=' its source needs.
+ *
+ * .xlsx stores a formula's text WITHOUT one -- the <f> element holds
+ * "SUM(B1:B9)", not "=SUM(B1:B9)". The formula bar shows this text, and so
+ * does the clipboard, so an imported formula that is copied and pasted
+ * lands as a LABEL rather than as a formula. */
+static void test_imported_formula_keeps_its_equals(void)
+{
+    cell_record_t rec;
+    char b[WB_TEXT_MAX];
+    uint16_t r, c;
+    uint8_t found = 0;
+
+    setup();
+    CHECK_EQ(xlsx_import("DEMO.XLSX"), ERR_OK);
+
+    for (r = 0; r < 40 && !found; ++r)
+        for (c = 0; c < 12; ++c)
+            if (wb_get(r, c, &rec) && rec.type == CELL_FORMULA) {
+                wb_edit_text(r, c, b, sizeof b);
+                CHECK_EQ(b[0], '=');
+                found = 1;
+                break;
+            }
+    CHECK(found);
+}
+
 static void test_demo_workbook(void)
 {
     const xlsx_report_t *r;
@@ -259,6 +286,7 @@ void test_xlsx_import(void)
     test_imported_formula_recalculates();
     test_unsupported_formula_keeps_value();
     test_demo_workbook();
+    test_imported_formula_keeps_its_equals();
     test_cells_landed();
     test_not_an_xlsx();
     test_import_twice();

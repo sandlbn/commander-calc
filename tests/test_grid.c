@@ -2053,6 +2053,86 @@ static void test_copy_again_replaces_the_clipboard(void)
 
 /* Copy, paste, copy, paste -- four times over, each with a different
  * block. A heap corrupted by the first copy would show by the third. */
+/* A copied formula must arrive as a formula, not as its text.
+ *
+ * The clipboard holds what the formula bar shows, which for a formula is
+ * its source INCLUDING the leading '='. put_value() refuses anything
+ * starting with '=' so the compiler gets it; if the '=' were missing the
+ * cell would land as a label reading "A1+1". */
+static void test_copy_paste_of_a_formula(void)
+{
+    char b[WB_TEXT_MAX];
+    cell_record_t rec;
+
+    setup();
+    wb_set_text(0, 0, "7");
+    wb_set_text(1, 0, "=A1+1");
+
+    /* What the clipboard will be given. */
+    wb_edit_text(1, 0, b, sizeof b);
+    CHECK_STR(b, "=A1+1");
+
+    grid_goto(1, 0);
+    grid_key(K_COPY);
+    grid_goto(5, 0);
+    grid_key(K_PASTE);
+
+    /* It is a formula cell, and its source still has the '='. */
+    CHECK(wb_get(5, 0, &rec));
+    CHECK_EQ(rec.type, CELL_FORMULA);
+    wb_edit_text(5, 0, b, sizeof b);
+    CHECK_EQ(b[0], '=');
+}
+
+/* An absolute reference keeps its '$' across a copy. */
+static void test_copy_paste_keeps_dollars(void)
+{
+    char b[WB_TEXT_MAX];
+
+    setup();
+    wb_set_text(0, 0, "7");
+    wb_set_text(1, 0, "=$A$1+A1");
+
+    grid_goto(1, 0);
+    grid_key(K_COPY);
+    grid_goto(4, 2);                    /* three rows down, two columns on */
+    grid_key(K_PASTE);
+
+    wb_edit_text(4, 2, b, sizeof b);
+    /* $A$1 is anchored and must not move; A1 is relative and follows. */
+    CHECK_STR(b, "=$A$1+C4");
+}
+
+/* Does a currency cell keep its format across a copy? */
+static void test_copy_paste_keeps_currency(void)
+{
+    cell_record_t rec;
+    cell_style_t st;
+    char b[WB_TEXT_MAX];
+    uint8_t id;
+
+    setup();
+    memset(&st, 0, sizeof st);
+    st.number_format = NF_CURRENCY;
+    st.decimal_places = 2;
+    CHECK_EQ(styles_add(&st, &id), ERR_OK);
+
+    wb_set_text(0, 0, "8.5");
+    wb_get(0, 0, &rec);
+    rec.style = id;
+    wb_set(0, 0, &rec);
+    wb_display_text(0, 0, b, sizeof b);
+    CHECK_STR(b, "$8.50");
+
+    grid_goto(0, 0);
+    grid_key(K_COPY);
+    grid_goto(6, 0);
+    grid_key(K_PASTE);
+
+    wb_display_text(6, 0, b, sizeof b);
+    CHECK_STR(b, "$8.50");
+}
+
 static void test_copy_paste_survives_repetition(void)
 {
     char b[WB_TEXT_MAX];
@@ -2081,6 +2161,9 @@ void test_grid(void)
 {
     test_copy_again_replaces_the_clipboard();
     test_copy_paste_survives_repetition();
+    test_copy_paste_of_a_formula();
+    test_copy_paste_keeps_dollars();
+    test_copy_paste_keeps_currency();
     test_copy_drops_the_block();
     test_insert_column_pushes_right();
     test_delete_column_pulls_left();

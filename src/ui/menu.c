@@ -776,7 +776,8 @@ static void cell_drop(uint16_t r, uint16_t c)
  * text: blank clears, TRUE/FALSE is a boolean, anything that parses is a
  * number, the rest is a label. A leading '=' is refused here and left to
  * OVL_FCOMPILE, which is the only overlay that may compile one. */
-static uint8_t put_value(uint16_t r, uint16_t c, const char *text)
+static uint8_t put_value(uint16_t r, uint16_t c, const char *text,
+                         uint8_t style)
 {
     cell_record_t rec;
     snum_t v;
@@ -793,6 +794,7 @@ static uint8_t put_value(uint16_t r, uint16_t c, const char *text)
     cell_drop(r, c);
     memset(&rec, 0, sizeof rec);
     rec.col = (uint8_t)c;
+    rec.style = style;
 
     if (up(text[0]) == 'T' && up(text[1]) == 'R') {
         rec.type = CELL_BOOLEAN; rec.val[0] = 1;
@@ -891,7 +893,9 @@ static uint8_t replace_run(void)
                 else if (k != 'Y')
                     continue;
             }
-            done |= put_value(r, c, rep_out);
+            /* The cell's own style, not 0: replacing the text inside a
+             * currency cell must not turn it into a bare number. */
+            done |= put_value(r, c, rep_out, rec.style);
         }
 
 done:
@@ -973,7 +977,7 @@ static uint16_t clip_size(void)
              * formula pasted back is a destroyed one. */
             if (len + 2 > CLIP_READ)
                 return 0;
-            n = (uint16_t)(n + len + 1);
+            n = (uint16_t)(n + len + 2);        /* text, NUL, style */
             if (n > BANK_MAX_ALLOC)
                 return 0;               /* refuse rather than truncate */
         }
@@ -1011,13 +1015,21 @@ static uint8_t copy_run(void)
     for (r = sel_r1; r <= sel_r2; ++r)
         for (c = sel_c1; c <= sel_c2; ++c) {
             uint16_t n = (uint16_t)(cell_len(r, c) + 1);
+            cell_record_t rec;
 
             /* Cannot fire now that both passes measure the same way -- and
              * it stays because bank_write() would not have told us. */
-            if ((uint16_t)(off + n) > need)
+            if ((uint16_t)(off + n + 1) > need)
                 break;
             bank_write(h, off, clip_buf, n);
             off = (uint16_t)(off + n);
+
+            /* The style travels beside the text, one byte after its NUL, so
+             * a currency cell pastes as currency rather than as a bare
+             * number. Both readers of this block step over it -- see
+             * clip_at() here and in fref.c. */
+            bank_poke(h, off, wb_get(r, c, &rec) ? rec.style : 0);
+            ++off;
         }
 
     clip_h    = h;
@@ -1066,12 +1078,16 @@ static uint8_t paste_run(void)
             uint16_t dr = (uint16_t)(grid_state()->cur_row + r);
             uint16_t dc = (uint16_t)(grid_state()->cur_col + c);
 
+            uint8_t sty;
+
             off = clip_at(off, clip_buf, sizeof clip_buf);
+            sty = bank_peek(clip_h, off);
+            ++off;                      /* the style byte */
             if (dr >= X16S_MAX_ROWS || dc >= X16S_MAX_COLS)
                 continue;               /* clipped at the edge */
             /* A formula is left to OVL_FCOMPILE; the grid loads it after
              * this returns. Everything else lands now. */
-            put_value(dr, dc, clip_buf);
+            put_value(dr, dc, clip_buf, sty);
         }
 
     wb_manual = was;
