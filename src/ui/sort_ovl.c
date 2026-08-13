@@ -62,7 +62,6 @@ static uint16_t sort_first;             /* the first row of the range */
 /* The index is relative to the range; the sheet is not. */
 #define sort_row(i) ((uint16_t)(sort_first + (i)))
 static uint16_t sort_key;               /* the column to sort on */
-static uint16_t sort_cols;              /* max_col + 1 */
 static uint8_t  sort_desc;
 
 #define IDX_AT(i)      bank_peek16(sort_idx, (uint16_t)((i) * 2))
@@ -164,7 +163,9 @@ static void row_swap(uint16_t a, uint16_t b)
     uint16_t c;
     uint8_t ha, hb;
 
-    for (c = 0; c < sort_cols; ++c) {
+    /* Only the block's columns. Anything either side of it stays where it
+     * is, which is the whole point of sorting a selection. */
+    for (c = sort_c0; c <= sort_c1; ++c) {
         ha = cells_get(cs, sort_row(a), c, &ra);
         hb = cells_get(cs, sort_row(b), c, &rb);
 
@@ -242,12 +243,11 @@ void sort_run(handle_t idx, uint8_t desc)
     /* From the cursor's row down -- see sort_ask(). The index counts from
      * zero and sort_row() adds the base back on, so nothing else here has
      * to know where the range starts. */
-    sort_first = sort_base();
-    n = (uint16_t)(cs->max_row - sort_first + 1);
+    sort_first = sort_r0;
+    n = (uint16_t)(sort_r1 - sort_r0 + 1);
 
     sort_idx  = idx;
-    sort_key  = grid_state()->cur_col;
-    sort_cols = (uint16_t)(cs->max_col + 1);
+    sort_key  = sort_keycol;
     sort_desc = desc;
 
     for (i = 0; i < n; ++i)
@@ -256,12 +256,23 @@ void sort_run(handle_t idx, uint8_t desc)
     sort_permute(n);
 
     /* Keep the permutation rather than freeing it: it is what undoing the
-     * sort needs, and the previous one is no longer reachable. */
-    bank_free(sort_undo_idx);
+     * sort needs, and the previous one is no longer reachable.
+     *
+     * GUARDED BY THE COUNT, exactly as the clipboard's block is. New, Open
+     * and Import throw the whole heap away, and after_file_op() answers by
+     * zeroing the count and leaving the handle alone -- there is nothing
+     * left to free. Freeing it anyway hands the allocator a block that now
+     * belongs to something else, and the damage surfaces later as one
+     * allocation overlapping another. */
+    if (sort_undo_n)
+        bank_free(sort_undo_idx);
     sort_undo_idx   = sort_idx;
     sort_undo_n     = n;
     sort_undo_sheet = wb_sheet_i;
     sort_undo_base  = sort_first;
+    sort_undo_c0    = sort_c0;
+    sort_undo_c1    = sort_c1;
+    sort_undo_maxrow = cs->max_row;
     sort_idx = H_NULL;
 
     /* NO wb_after_change() HERE. It is resident, but it loads OVL_FEVAL --
@@ -293,7 +304,11 @@ void sort_undo(void)
 
     cs = wb_cells();
     sort_first = sort_undo_base;
-    if ((uint16_t)(cs->max_row - sort_first + 1) != n)
+    /* A used range that has changed size since means the permutation no
+     * longer describes this sheet, and applying it would move rows that
+     * were never sorted. Compared against what it was at sort time rather
+     * than against the block, which says nothing about the rest. */
+    if (cs->max_row != sort_undo_maxrow)
         return;
 
     inv = bank_alloc((uint16_t)(n * 2));
@@ -304,8 +319,11 @@ void sort_undo(void)
     for (i = 0; i < n; ++i)
         bank_poke16(inv, (uint16_t)(IDX_AT(i) * 2), i);
 
-    sort_idx  = inv;
-    sort_cols = (uint16_t)(cs->max_col + 1);
+    sort_idx = inv;
+    /* The same columns that moved, not the used range, which may have
+     * grown since. */
+    sort_c0 = sort_undo_c0;
+    sort_c1 = sort_undo_c1;
     sort_permute(n);
 
     bank_free(inv);

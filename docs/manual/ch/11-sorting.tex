@@ -8,7 +8,8 @@ cell, and the only one with an undo of its own.
 \section{How the range is chosen}
 \index{sorting!range}
 
-There is no dialogue asking what to sort. The cursor decides everything:
+There is no dialogue asking what to sort. With nothing selected, the cursor
+decides everything:
 
 \begin{ccsteps}
 \item \textbf{The column the cursor is in} is the column sorted on.
@@ -20,6 +21,30 @@ across every column that has anything in it.
 So to sort a table with a heading row, put the cursor on the \emph{first row of
 data} --- not on the heading --- in the column you want to sort by, and the
 heading stays where it is.
+
+\section{Sorting part of a sheet}
+\index{sorting!a selection}
+
+\textbf{Select a block first and only that block moves.} \key{Ctrl+A} anchors
+a selection, the arrow keys extend it, and a sort then reorders those rows
+within those columns and touches nothing else on the sheet.
+
+\textbf{The block's first column is the one sorted on}, and the rest of the
+block travels with it --- select \cellref{A1} to \cellref{C20} and the rows
+are ordered by column~A while B and~C stay with their own row. That is the
+first column of the \emph{selection}, not of the sheet: a block from
+\cellref{C1} to \cellref{E9} sorts on column~C.
+
+That is the way to sort a table that shares a worksheet with anything else:
+totals below it, notes beside it, or formulas that read it.
+
+\begin{cccaution}
+If the block is narrower than the data on its rows, \ccprod{} asks
+\msg{data beside the block will not move} first. Answering \key{Y} sorts the
+block alone, which slides it out of step with whatever is beside it ---
+sometimes exactly what is wanted, and sometimes how a table comes apart.
+Widen the selection to the full width of the table to keep the rows together.
+\end{cccaution}
 
 \begin{ccfigure}
 \ccscreenscale{1.1}

@@ -34,6 +34,11 @@ static void setup(void)
     /* The grid reads cell values now, so it needs a live workbook under it. */
     CHECK(bankmem_host_init(64));
     CHECK_EQ(bank_heap_init(1, 0), ERR_OK);
+    /* The heap has just been thrown away, so a permutation left by an
+     * earlier test now addresses whatever the next allocation is given.
+     * after_file_op() does exactly this in the program, for exactly this
+     * reason; the harness has to as well or the tests interfere. */
+    sort_undo_n = 0;
     CHECK_EQ(wb_init(), ERR_OK);
     screen_host_init(80, 60);
     CHECK_EQ(grid_init(), ERR_OK);
@@ -1016,6 +1021,102 @@ static void test_sort_undo_only_once(void)
     grid_key(K_SORT_UNDO);
     wb_display_text(0, 0, b, sizeof b); CHECK_STR(b, "30");
     wb_display_text(1, 0, b, sizeof b); CHECK_STR(b, "10");
+}
+
+/* A selected block sorts as a block: those rows, those columns, and
+ * nothing else on the sheet moves. */
+static void test_sort_selection_only(void)
+{
+    char b[WB_TEXT_MAX];
+    uint8_t k[4];
+
+    sort_setup();
+    /* Column B carries a label per row; it is OUTSIDE the block and must
+     * stay attached to its row number, not follow column A. */
+    CHECK_EQ(wb_set_text(0, 1, "keep0"), ERR_OK);
+    CHECK_EQ(wb_set_text(1, 1, "keep1"), ERR_OK);
+    CHECK_EQ(wb_set_text(2, 1, "keep2"), ERR_OK);
+
+    /* Select A1:A3 -- Ctrl+A anchors, then extend down twice. */
+    grid_goto(0, 0);
+    grid_key(0x01);
+    grid_key(K_DOWN);
+    grid_key(K_DOWN);
+
+    /* The block is narrower than the data, so it asks first. */
+    k[0] = 'y';
+    kbd_host_push(k, 1);
+    grid_key(K_SORT_ASC);
+
+    wb_display_text(0, 0, b, sizeof b); CHECK_STR(b, "10");
+    wb_display_text(1, 0, b, sizeof b); CHECK_STR(b, "20");
+    wb_display_text(2, 0, b, sizeof b); CHECK_STR(b, "30");
+
+    /* Column B did not move. */
+    wb_display_text(0, 1, b, sizeof b); CHECK_STR(b, "keep0");
+    wb_display_text(1, 1, b, sizeof b); CHECK_STR(b, "keep1");
+    wb_display_text(2, 1, b, sizeof b); CHECK_STR(b, "keep2");
+}
+
+/* A multi-column block sorts by its FIRST column, and the rest of the
+ * block travels with it.
+ *
+ * The cursor ends on the last column after extending right, so keying on
+ * the cursor would sort a table selected from its left edge by its
+ * rightmost column. */
+static void test_sort_block_keys_on_first_column(void)
+{
+    char b[WB_TEXT_MAX];
+
+    setup();
+    sort_undo_n = 0;
+    /* A is the key, B and C must stay with their row. */
+    wb_set_text(0, 0, "30"); wb_set_text(0, 1, "c"); wb_set_text(0, 2, "300");
+    wb_set_text(1, 0, "10"); wb_set_text(1, 1, "a"); wb_set_text(1, 2, "100");
+    wb_set_text(2, 0, "20"); wb_set_text(2, 1, "b"); wb_set_text(2, 2, "200");
+
+    /* Select A1:C3 -- anchor at A1, extend right twice and down twice, so
+     * the cursor finishes on C3. */
+    grid_goto(0, 0);
+    grid_key(0x01);
+    grid_key(K_RIGHT); grid_key(K_RIGHT);
+    grid_key(K_DOWN);  grid_key(K_DOWN);
+
+    /* The block covers everything on those rows, so nothing is asked. */
+    grid_key(K_SORT_ASC);
+
+    wb_display_text(0, 0, b, sizeof b); CHECK_STR(b, "10");
+    wb_display_text(1, 0, b, sizeof b); CHECK_STR(b, "20");
+    wb_display_text(2, 0, b, sizeof b); CHECK_STR(b, "30");
+
+    /* ...and each row kept its own B and C. */
+    wb_display_text(0, 1, b, sizeof b); CHECK_STR(b, "a");
+    wb_display_text(0, 2, b, sizeof b); CHECK_STR(b, "100");
+    wb_display_text(1, 1, b, sizeof b); CHECK_STR(b, "b");
+    wb_display_text(1, 2, b, sizeof b); CHECK_STR(b, "200");
+    wb_display_text(2, 1, b, sizeof b); CHECK_STR(b, "c");
+    wb_display_text(2, 2, b, sizeof b); CHECK_STR(b, "300");
+}
+
+/* Declining the warning leaves the sheet alone. */
+static void test_sort_selection_can_be_refused(void)
+{
+    char b[WB_TEXT_MAX];
+    uint8_t k[4];
+
+    sort_setup();
+    CHECK_EQ(wb_set_text(0, 1, "keep0"), ERR_OK);
+
+    grid_goto(0, 0);
+    grid_key(0x01);
+    grid_key(K_DOWN);
+    grid_key(K_DOWN);
+
+    k[0] = 'n';
+    kbd_host_push(k, 1);
+    grid_key(K_SORT_ASC);
+
+    wb_display_text(0, 0, b, sizeof b); CHECK_STR(b, "30");   /* untouched */
 }
 
 /* Undo with nothing sorted must do nothing at all. */
@@ -2245,6 +2346,9 @@ void test_grid(void)
     test_sort_undo_restores_the_order();
     test_sort_undo_through_the_menu();
     test_sort_undo_only_once();
+    test_sort_selection_only();
+    test_sort_block_keys_on_first_column();
+    test_sort_selection_can_be_refused();
     test_sort_undo_without_a_sort();
     test_sort_undo_refuses_when_the_range_grew();
     test_sort_undo_refuses_on_another_sheet();

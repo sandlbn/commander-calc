@@ -834,6 +834,10 @@ static const char S_sorttitle[] = "Sort";
  * expressed at all: a range naming rows a sort scatters is not a range
  * afterwards. */
 static const char S_sortformulas[] = "ranges over sorted rows may be wrong";
+/* A block narrower than the data on its rows leaves the rest of each row
+ * where it is, so the two stop lining up. Excel widens the selection; this
+ * asks, because sorting one column on purpose is a thing people do. */
+static const char S_sortnarrow[] = "data beside the block will not move";
 static const char S_sortbig[] = "too many rows to sort";
 static const char S_sortmem[] = "not enough memory to sort";
 
@@ -852,26 +856,36 @@ handle_t sort_ask(void)
 {
     const cellstore_t *cs = wb_cells();
     cell_record_t rec;
-    uint16_t base = sort_base();
-    uint16_t n, r, c, formulas = 0;
+    uint16_t n, r, c, formulas = 0, beside = 0;
     handle_t idx;
 
-    if (cs->cell_count == 0 || base >= cs->max_row)
-        return H_NULL;                  /* nothing below the cursor */
+    /* The block, or the cursor's row down; grid.c worked it out before
+     * either overlay loaded. See sort_range(). */
+    if (cs->cell_count == 0 || sort_r0 >= sort_r1)
+        return H_NULL;                  /* nothing to reorder */
 
-    n = (uint16_t)(cs->max_row - base + 1);
+    n = (uint16_t)(sort_r1 - sort_r0 + 1);
     if (n > BANK_SIZE / 2) {
         dlg_message(S_sorttitle, S_sortbig);
         return H_NULL;
     }
 
-    for (r = base; r <= cs->max_row && !formulas; ++r)
-        for (c = 0; c <= cs->max_col; ++c)
-            if (cells_get(cs, r, c, &rec) && rec.type == CELL_FORMULA) {
+    for (r = sort_r0; r <= sort_r1; ++r) {
+        for (c = sort_c0; c <= sort_c1 && !formulas; ++c)
+            if (cells_get(cs, r, c, &rec) && rec.type == CELL_FORMULA)
                 ++formulas;
-                break;
-            }
+        /* Anything on these rows that the block does not cover stays put
+         * while the block moves, so the row comes apart. */
+        for (c = 0; c <= cs->max_col && !beside; ++c)
+            if ((c < sort_c0 || c > sort_c1)
+                && cells_get(cs, r, c, &rec))
+                ++beside;
+        if (formulas && beside)
+            break;
+    }
 
+    if (beside && !dlg_confirm(S_sorttitle, S_sortnarrow))
+        return H_NULL;
     if (formulas && !dlg_confirm(S_sorttitle, S_sortformulas))
         return H_NULL;
 

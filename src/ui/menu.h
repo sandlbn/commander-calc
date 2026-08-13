@@ -138,7 +138,19 @@ handle_t sort_ask(void);
  * A MACRO because both halves of the sort need it and they live in
  * different overlays -- as a function it would be a cross-overlay call.
  * grid_state() is resident, so inlining costs nothing. */
-#define sort_base() (grid_state()->cur_row)
+/* The rows and columns a sort will move, worked out in resident code
+ * before either overlay is loaded -- sort_ask() is with the dialogs and
+ * sort_run() is with the work, and neither can see the other's statics.
+ *
+ * With a block selected these are its bounds; without one they are the
+ * cursor's row down to the last used one, across every column, which is
+ * what sorting did before there was a selection to ask about. */
+extern uint16_t sort_r0, sort_r1, sort_c0, sort_c1;
+/* The column whose values decide the order. */
+extern uint16_t sort_keycol;
+void sort_range(void);
+
+#define sort_base() (sort_r0)
 void     sort_run(handle_t idx, uint8_t desc);
 
 /* What the last sort did, kept so it can be taken back.
@@ -157,6 +169,9 @@ extern handle_t sort_undo_idx;
 extern uint16_t sort_undo_n;
 extern uint8_t  sort_undo_sheet;
 extern uint16_t sort_undo_base;
+/* The columns that moved, so undo restores the same block and no more. */
+extern uint16_t sort_undo_c0, sort_undo_c1;
+extern uint16_t sort_undo_maxrow;
 
 /* Put the rows back. Does nothing unless the sheet and its size still match
  * what was sorted. */

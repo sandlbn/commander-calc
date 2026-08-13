@@ -526,13 +526,18 @@ uint8_t formula_sorted(uint8_t undo, uint8_t restart)
             continue;               /* the shift is one byte; see above */
 
         row = (uint16_t)(sort_undo_base + i);
-        for (c = res_c; c <= cs->max_col; ++c)
+        /* Only the columns the sort moved. A formula beside the block did
+         * not move, so shifting its references would break a sheet the
+         * sort had deliberately left alone. */
+        if (res_c < sort_undo_c0)
+            res_c = sort_undo_c0;
+        for (c = res_c; c <= sort_undo_c1; ++c)
             if (shift_one(row, c, 0, (int8_t)d)) {
                 res_r = i;
                 res_c = (uint16_t)(c + 1);
                 return 1;               /* queue full: drain and resume */
             }
-        res_c = 0;
+        res_c = sort_undo_c0;
     }
     return 0;
 }

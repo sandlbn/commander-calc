@@ -198,6 +198,11 @@ handle_t sort_undo_idx;
 uint16_t sort_undo_n;
 uint8_t  sort_undo_sheet;
 uint16_t sort_undo_base;
+uint16_t sort_undo_c0, sort_undo_c1;
+/* The used range as it was when the sort ran. */
+uint16_t sort_undo_maxrow;
+/* The block the next sort will move; see sort_range(). */
+uint16_t sort_r0, sort_r1, sort_c0, sort_c1, sort_keycol;
 X16S_GOLDEN_END
 static const char *status_text = "";
 
@@ -1023,6 +1028,42 @@ static void finish_edit(ed_result_t r)
     render_status();
 }
 
+/* Which rows and columns the next sort will move.
+ *
+ * A selected block sorts as a block: only those rows move, and only within
+ * those columns, so a table beside the data is left where it is. Without a
+ * selection this is what sorting has always done -- the cursor's row down
+ * to the last used one, every column -- because there is nothing else to
+ * infer an intent from.
+ *
+ * Resident, and computed before either overlay loads, because sort_ask()
+ * and sort_run() live in different ones and cannot share a static. */
+void sort_range(void)
+{
+    const cellstore_t *cs = wb_cells();
+
+    if (grid.sel_on) {
+        sort_r0 = sel_r1;
+        sort_r1 = sel_r2;
+        sort_c0 = sel_c1;
+        sort_c1 = sel_c2;
+        /* The block's FIRST column, not the cursor's.
+         *
+         * The cursor is one corner of the selection, so after anchoring at
+         * A1 and extending right it sits on the last column -- selecting
+         * A:C would then sort by C, which is not what selecting a table
+         * from its left edge means. The other columns follow, because the
+         * whole block moves as rows. */
+        sort_keycol = sel_c1;
+    } else {
+        sort_r0 = grid.cur_row;
+        sort_r1 = cs->max_row;
+        sort_c0 = 0;
+        sort_c1 = cs->max_col;
+        sort_keycol = grid.cur_col;
+    }
+}
+
 grid_action_t grid_key(uint8_t key)
 {
     /* While editing, the editor sees every key first: arrows move the caret
@@ -1228,6 +1269,7 @@ again:
          * there was room for it. See menu.h. */
         handle_t idx;
 
+        sort_range();                   /* before either overlay loads */
         if (dialogs() != ERR_OK)
             break;
         idx = sort_ask();
