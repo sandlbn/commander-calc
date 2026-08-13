@@ -914,9 +914,11 @@ static err_t run_command(uint8_t cmd)
             return ERR_IO;
         {
             csv_result_t res;
-            /* The cursor is the top-left corner, so a CSV can be dropped
-             * into a corner of an existing sheet rather than only at A1. */
-            e = csv_import(file_name, grid.cur_row, grid.cur_col, &res);
+            /* A1, not the cursor. Import means "read this file in", and an
+             * .xlsx replaces the workbook outright -- a CSV landing wherever
+             * the cursor happened to be made the same command do two
+             * different things, with nothing on screen to say which. */
+            e = csv_import(file_name, 0, 0, &res);
             /* The importer could not compile the formulas it found -- that
              * would have loaded an overlay over the one it was running in.
              * Here is where it is safe. See csv.c. */

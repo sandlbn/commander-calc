@@ -25,14 +25,16 @@ The box is titled \msg{Open}, not \msg{Import}. It is the same dialogue.
 \end{ccnote}
 
 The two importers differ in one large respect: \textbf{a CSV is read into the
-worksheet you are on, at the cursor; an XLSX replaces the entire workbook.}
+worksheet you are on; an XLSX replaces the entire workbook.} Both start at
+\cellref{A1}.
 
 \section{Importing a CSV}
 \index{CSV!import}
 
-The file is read in at the cursor cell, which becomes the top-left corner of
-the imported block. Put the cursor on \cellref{A1} to import at the origin, or
-anywhere else to drop the data into a corner of an existing sheet.
+The file is read in at \cellref{A1}, whatever the cursor was on, and fills
+down and right from there. Anything already in those cells is overwritten;
+cells outside the block are left alone, so importing a small CSV into a large
+sheet replaces a corner of it rather than the whole thing.
 
 Each field is interpreted exactly as though you had typed it into that cell:
 numbers become numbers, \lit{TRUE} and \lit{FALSE} become booleans, a field
