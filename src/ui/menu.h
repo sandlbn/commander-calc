@@ -28,6 +28,11 @@ uint8_t menu_run(void);
  * menu_run() resets it to MENU_BY_KEY as soon as it has read it, so a click
  * sets it for exactly one opening. */
 #define MENU_BY_KEY 0xFF
+
+/* ...or MENU_ABOUT when the click was on the product name at the right-hand
+ * end of the bar, which is a button rather than a menu title. It travels the
+ * same way a column does so that the grid needs no second path for it. */
+#define MENU_ABOUT  0xFE
 extern uint8_t menu_open_x;
 
 /* Sheet commands the menu can return. Not codes the keyboard produces --

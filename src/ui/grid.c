@@ -1407,8 +1407,13 @@ grid_action_t grid_mouse(uint16_t px, uint16_t py, uint8_t buttons,
 
     if (sy == ROW_MENU) {
         /* Which menu, so clicking "Edit" opens Edit rather than whichever
-         * one F10 happens to open first. menu_run() consumes it. */
-        menu_open_x = sx;
+         * one F10 happens to open first. menu_run() consumes it.
+         *
+         * The product name at the right-hand end is a button too, and takes
+         * the same route so that this needs no second path: MENU_ABOUT is a
+         * column number no bar is ever that wide to have. */
+        menu_open_x = sx >= (uint8_t)(screen_cols() - sizeof S_name)
+                    ? MENU_ABOUT : sx;
         return grid_key(K_F10);         /* the same menu the key opens */
     }
 

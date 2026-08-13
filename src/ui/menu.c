@@ -265,6 +265,50 @@ static uint8_t menu_at(uint8_t sx)
     return m;
 }
 
+/* --- about ------------------------------------------------------------
+ *
+ * The product name on the menu bar is a button, and this is what it opens.
+ * Drawn here rather than through the dialogs in OVL_FILEDLG, which have 56
+ * bytes free and would need loading; this overlay is already resident when
+ * the bar is clicked.
+ *
+ * The version comes from the Makefile through -DCC_VERSION, so the box
+ * and `make release` cannot disagree about what this build is.
+ */
+#ifndef CC_VERSION
+#  define CC_VERSION "dev"
+#endif
+
+#define AB_W 40
+#define AB_H 9
+
+static const char S_ab1[] = "Commander Calc " CC_VERSION;
+static const char S_ab2[] = "A spreadsheet for the Commander X16";
+static const char S_ab3[] = "65C02 . VERA . CMDR-DOS";
+static const char S_ab4[] = "Press any key";
+
+static void about_run(void)
+{
+    uint8_t x = (uint8_t)((screen_cols() - AB_W) >> 1);
+    uint8_t y = (uint8_t)((screen_rows() - AB_H) >> 1);
+    uint8_t i;
+
+    screen_fill(x, y, AB_W, ' ', C_OPEN);
+    screen_text((uint8_t)(x + 2), y, S_ab1,
+                (uint8_t)(AB_W - 4), C_OPEN);
+    for (i = 1; i < AB_H; ++i)
+        screen_fill(x, (uint8_t)(y + i), AB_W, ' ', C_ITEM);
+
+    screen_text((uint8_t)(x + 2), (uint8_t)(y + 2), S_ab2,
+                (uint8_t)(AB_W - 4), C_ITEM);
+    screen_text((uint8_t)(x + 2), (uint8_t)(y + 3), S_ab3,
+                (uint8_t)(AB_W - 4), C_ITEM);
+    screen_text((uint8_t)(x + 2), (uint8_t)(y + 6), S_ab4,
+                (uint8_t)(AB_W - 4), C_ITEM);
+
+    kbd_wait();
+}
+
 uint8_t menu_run(void)
 {
     uint8_t m = 0, sel = 0, redraw = 1;
@@ -277,6 +321,11 @@ uint8_t menu_run(void)
      * one's panel to clear away first. Nothing is drawn yet. */
     uint8_t drawn_m;
 
+    if (menu_open_x == MENU_ABOUT) {
+        menu_open_x = MENU_BY_KEY;
+        about_run();
+        return 0;                       /* no command; the grid repaints */
+    }
     if (menu_open_x != MENU_BY_KEY)
         m = menu_at(menu_open_x);
     menu_open_x = MENU_BY_KEY;

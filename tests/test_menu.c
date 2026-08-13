@@ -418,8 +418,50 @@ static void test_replace_cancelled(void)
     cell_is(1, 0, "red bus");
 }
 
+/* Is `needle` anywhere on row `y`? The About box is centred, so pinning it
+ * to a column would only be re-deriving the arithmetic under test. */
+static int row_has(uint8_t y, const char *needle)
+{
+    return strstr(screen_host_row(y), needle) != NULL;
+}
+
+/* Clicking the product name opens the About box rather than a menu.
+ *
+ * It travels as a column number through menu_open_x, so the thing worth
+ * pinning is that the sentinel does not land on a real menu: MENU_ABOUT is
+ * 0xFE, and menu_at() would otherwise answer with the last title whose
+ * column is below it. */
+static void test_about_box(void)
+{
+    uint8_t k[2];
+
+    setup();
+
+    /* No keys queued: about_run() waits for one, and off the machine an
+     * empty queue answers immediately, so this returns without blocking. */
+    menu_open_x = MENU_ABOUT;
+    CHECK_EQ(menu_run(), 0);            /* no command came back */
+
+    {   /* centred: 40 wide and 9 tall on an 80x60 screen */
+        uint8_t y = (uint8_t)((60 - 9) >> 1);
+        CHECK(row_has(y, "Commander Calc"));
+        CHECK(row_has((uint8_t)(y + 2), "spreadsheet"));
+        CHECK(row_has((uint8_t)(y + 6), "any key"));
+    }
+
+    /* And it is consumed: the next open is a menu again, not the box. */
+    CHECK_EQ(menu_open_x, MENU_BY_KEY);
+
+    k[0] = 0x1B;                        /* ESC closes the bar */
+    kbd_host_push(k, 1);
+    menu_open_x = 1;                    /* the File title */
+    CHECK_EQ(menu_run(), 0);
+    CHECK(row_has(0, "File"));
+}
+
 void test_menu(void)
 {
+    test_about_box();
     test_replace_asks_for_each();
     test_replace_all_does_the_rest();
     test_replace_changes_numbers_but_not_formulas();

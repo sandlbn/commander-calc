@@ -42,7 +42,15 @@ HOSTDIR := $(BUILD)/host
 # a chart was drawn.
 OVL_N := 17
 
-X16FLAGS := -t cx16 --cpu 65c02 -Osir -DX16S_XLSX_UI
+# One version number for the whole build: the About box shows it and
+# `make release` names the archive with it, so they cannot disagree.
+# Defined here rather than beside the release rules because the compiler
+# flags below need it. `?=` there leaves an override on the command line
+# working: make release VERSION=1.1
+VERSION ?= 1.0
+
+X16FLAGS := -t cx16 --cpu 65c02 -Osir -DX16S_XLSX_UI \
+            -DCC_VERSION='"$(VERSION)"'
 
 # --codesize is cc65's size/speed dial: below 100 it stops expanding runtime
 # helpers inline and calls them instead -- smaller code, an extra jsr on the
@@ -94,6 +102,7 @@ LDFLAGS  := -t cx16 -C cfg/x16sheet.cfg -m $(BUILD)/x16sheet.map \
             -Ln $(BUILD)/labels.txt
 
 HOSTFLAGS := -std=c99 -Wall -Wextra -Wno-unused-parameter -g -O1 -DX16S_HOST -DX16S_XLSX_UI \
+             -DCC_VERSION='"$(VERSION)"' \
              -DX16S_POOL_VERIFY
 HOSTLIBS  := -lm
 
