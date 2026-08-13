@@ -87,8 +87,11 @@ uint8_t dir_next(file_entry_t *e)
     strncpy(e->name, d->d_name, FILE_NAME_MAX - 1);
     e->name[FILE_NAME_MAX - 1] = '\0';
     {
-        char path[600];
+        /* Big enough for `here` plus a separator and the longest name, so
+         * the entry being stat'ed is never the truncation of a longer one. */
+        char path[sizeof here + FILE_NAME_MAX + 1];
         struct stat st;
+
         snprintf(path, sizeof path, "%s/%s", here, e->name);
         e->is_dir = (stat(path, &st) == 0 && S_ISDIR(st.st_mode)) ? 1 : 0;
         e->blocks = (uint16_t)((stat(path, &st) == 0)
