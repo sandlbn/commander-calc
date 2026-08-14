@@ -163,9 +163,16 @@ import or export. Not an error. \\
 \menupath{Layout > Delete row}. \\
 \msg{discard unsaved changes?} & Confirming \menupath{New},
 \menupath{Open} or \menupath{Quit} with a modified workbook. \\
-\msg{end it .XLSX for Excel, .CSV for plain text} & A hint on the name box. It
-applies to \menupath{Export}; \menupath{Save} always writes \fname{.X16S}
-whatever you type. \\
+\msg{end it .X16S} & A hint on the \menupath{Save as} name box. The format is
+always native whatever you type; the hint is about the name. \\
+\msg{end it .XLSX for Excel, .CSV for plain text} & The same box under
+\menupath{Export}, where the extension does decide the format. \\
+\msg{Nothing to freeze here} & \menupath{Layout > Freeze} with the cursor too
+far down the sheet or too far right --- freezing there would leave nothing to
+scroll. \\
+\msg{data beside the block will not move} & Before sorting a selection that is
+narrower than the data on its rows. \key{Y} sorts the block alone. See
+Chapter~\ref{ch:sorting}. \\
 \msg{ranges over sorted rows may be wrong} & Before a sort of rows containing
 formulas. \key{Y} to go ahead. Relative references move with their rows; a
 range spanning the sorted rows cannot. See Chapter~\ref{ch:sorting}. \\

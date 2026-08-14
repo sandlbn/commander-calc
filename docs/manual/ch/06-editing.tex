@@ -107,10 +107,18 @@ difference, and the block is the rectangle between them either way.
 \begin{cctable}{To}{Press}{2.4in}{2.42in}
 Start a block & \keyc{Ctrl}{A} \\
 Grow or shrink it & Any movement key \\
-Drop it & \keyc{Ctrl}{A} again, or \key{Esc} \\
-Copy it & \keyc{Ctrl}{C} \\
-Clear it & \key{Del} \\
+Drop it & \keyc{Ctrl}{A} again \\
+Copy it & \keyc{Ctrl}{C} --- which drops it too \\
+Clear it & \key{Del} --- which drops it too \\
+Sort it & \menupath{Data > Sort up} or \menupath{Sort down} \\
 \end{cctable}
+
+\begin{ccnote}
+\keyc{Ctrl}{A} is the only way to drop a block deliberately; \key{Esc} does
+nothing here, because it belongs to editing a cell. \menupath{Copy} and
+\menupath{Clear} let go of the block by themselves once they have finished
+with it. Everything else --- pasting, sorting --- leaves it marked.
+\end{ccnote}
 
 A command that acts on ``the selection'' acts on the current cell when there is
 no block, so \keyc{Ctrl}{C} and \key{Del} need no block to be useful.

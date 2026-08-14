@@ -28,7 +28,7 @@ runs on the machine itself — there is no host-side converter.
 
 - Block selection: `Ctrl+A` anchors, cursor movement extends it, and every
   movement key works — arrows, Page Up/Down, Home, End, mouse click
-- Copy, paste and clear operate on the block
+- Copy, paste, clear and sort all operate on the block
 - Pasted formulas have their references rewritten by the block's offset, in
   both rows and columns, and column letters carry correctly (Z → AA)
 - The same rewriting runs on insert row, delete row, sort and undo sort

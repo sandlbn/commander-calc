@@ -282,6 +282,7 @@ headings are in row~1 and column~\cellref{A}.
 
 \ccrunin{Notes}
 \begin{ccsteps}
+\item At \cellref{A1}, freezes the first row and the first column.
 \item Rows are frozen only if the cursor is in the top half of the visible
 rows; columns only if another column of default width would still fit across
 the screen. Otherwise that half of the request is refused, silently.
@@ -536,11 +537,15 @@ already marked.
 \begin{ccsteps}
 \item Once anchored, \textbf{every movement key extends the block} --- arrows,
 \key{PgUp}, \key{PgDn}, \key{Home}, \key{End}, and a mouse click.
-\item \key{Esc} drops the block, and so does \keyc{Ctrl}{A} again.
+\item \keyc{Ctrl}{A} again drops it. \key{Esc} does not --- it belongs to
+editing a cell.
+\item \menupath{Copy} and \menupath{Clear} drop the block once they are done
+with it. Pasting and sorting leave it marked.
 \item The anchor may end up below and right of the cursor; the block is the
 rectangle between them either way.
-\item \menupath{Copy} and \menupath{Clear} act on the block when there is one
-and on the cursor cell when there is not.
+\item \menupath{Copy}, \menupath{Clear} and the two \menupath{Sort} commands
+act on the block when there is one and on the cursor cell or column when there
+is not.
 \end{ccsteps}
 
 \cccmd[Data menu. No keyboard shortcut.]{Sort down}
@@ -553,16 +558,19 @@ sort to the bottom.
 \cccmd[Data menu. No keyboard shortcut.]{Sort up}
 \index{Sort up command}
 
-Sorts whole rows into ascending order on the column the cursor is in, starting
-at the row the cursor is on.
+Sorts into ascending order. With a block selected, only that block moves,
+ordered on its own first column. With nothing selected, whole rows are sorted
+on the column the cursor is in, from the cursor's row down.
 
 \ccrunin{Procedure}
 \begin{ccprocedure}[]
-\item Put the cursor in the column to sort by, on the first row of data --- not
-on the heading.
+\item Either select the table --- \keyc{Ctrl}{A} and extend --- or put the
+cursor in the column to sort by, on the first row of data, not on the heading.
 \item Choose \menupath{Data > Sort up}.
 \item If the range contains formulas, press \key{Y} at
 \msg{ranges over sorted rows may be wrong}.
+\item If the block is narrower than the data on its rows, press \key{Y} at
+\msg{data beside the block will not move}.
 \end{ccprocedure}
 
 \ccrunin{Notes}
@@ -573,7 +581,11 @@ characters), then errors, then blanks. Blanks stay last in both directions.
 its own row goes on reading it. A \emph{range} spanning sorted rows cannot be
 fixed that way, which is what the warning is about.
 \item At most 4,096 rows; beyond that, \msg{too many rows to sort}.
-\item The cursor is put on \cellref{A1} afterwards.
+\item \textbf{A selection sorts on its own first column}, not on the sheet's
+and not on the cursor's: a block from \cellref{C1} to \cellref{E9} orders by
+column~\cellref{C}.
+\item The cursor is put on \cellref{A1} afterwards, and a selection is left
+marked.
 \end{ccsteps}
 
 \cccmd[Edit menu. \key{F5}.]{Undo}

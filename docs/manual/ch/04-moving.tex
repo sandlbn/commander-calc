@@ -101,6 +101,13 @@ are in row~1 and column~\cellref{A}, that is \cellref{B2}.
 \item Choose \menupath{Layout > Freeze}.
 \end{ccprocedure}
 
+\begin{ccnote}
+At \cellref{A1} there is nothing above or to the left to keep, so
+\menupath{Freeze} there is taken to mean the obvious thing instead: the first
+row and the first column are frozen. It is the common case, and it saves
+moving the cursor to \cellref{B2} to ask for it.
+\end{ccnote}
+
 Everything above and to the left of the cursor now stays put. Choosing
 \menupath{Freeze} again unfreezes: it is one command, not two, and being frozen
 already is what tells it which to do.
@@ -109,8 +116,11 @@ already is what tells it which to do.
 \ccprod{} refuses to freeze anything that would leave nothing to scroll. Rows
 are frozen only if the cursor is in the top half of the visible rows, and
 columns only if at least one more column of default width would still fit
-across the screen. If nothing appears to happen, the cursor is too far down or
-too far right.
+across the screen.
+
+If neither can be frozen, the status line says \msg{Nothing to freeze here}
+--- the cursor is too far down the sheet, or too far to the right. Move it up
+or left and try again.
 \end{ccnote}
 
 There is no split screen, and the freeze is not saved with the workbook.

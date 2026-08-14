@@ -134,7 +134,9 @@ all in anything shorter than ten lines.
 
 \begin{cctable}{Line}{Contents}{0.72in}{4.1in}
 0 & The menu bar, whether or not a menu is open. It always reads: \newline
-\msg{~File~~Edit~~Layout~~Data~~Chart~~Sheet} \\
+\msg{~File~~Edit~~Layout~~Data~~Chart~~Sheet} \newline
+with \msg{Commander Calc} at the right-hand end, which is a button --- see
+\hyperref[sec:about]{The About box} below. \\
 1 & The formula bar: the address of the current cell, a vertical bar, and what
 that cell really contains. \\
 2 & The column headings, \lit{A} through \lit{IV}. \\
@@ -360,3 +362,38 @@ Dialogue title bar, buttons, selected row & White on blue \\
 \end{cctable}
 
 None of these can be changed.
+
+\section{The About box}
+\label{sec:about}
+\index{About box}\index{version number}
+
+\textbf{Click \msg{Commander Calc} at the right-hand end of the menu bar.} A box
+opens in the middle of the screen naming the program and the version this copy
+was built as:
+
+\begin{ccfigure}
+\ccscreenscale{1.3}
+\begin{tikzpicture}
+\node[inner sep=0pt,anchor=north west] (ab) at (0,0) {%
+\ccscreenbegin{40}{9}
+  \ccfill{0}{0}{40}{x16blue}
+  \cctext{0}{2}{x16white}{Commander~Calc~1.0}
+  \ccfillbox{1}{0}{40}{8}{x16mgrey}
+  \cctext{2}{2}{x16white}{A~spreadsheet~for~the~Commander~X16}
+  \cctext{3}{2}{x16white}{65C02~.~VERA~.~CMDR-DOS}
+  \cctext{6}{2}{x16white}{Press~any~key}
+\ccscreenend
+};
+\end{tikzpicture}
+\caption{The About box}
+\label{fig:about}
+\end{ccfigure}
+
+Any key closes it. It is the one part of \ccprod{} that can only be reached with
+the mouse --- there is no menu entry and no keyboard shortcut.
+
+\begin{ccnote}
+The version shown is fixed when the program is built, so it is the reliable way
+to tell one copy from another. If you are reporting something odd, this is the
+number to quote.
+\end{ccnote}

@@ -61,11 +61,22 @@ with the same keys you use in a cell, and press \key{Return}. \key{Esc}
 cancels --- and so does pressing \key{Return} on an empty field.
 
 \begin{ccnote}
-\menupath{Save} always writes the native \fname{.X16S} format, whatever the name
-you give it. The hint about \fname{.XLSX} and \fname{.CSV} on that dialogue
-belongs to \menupath{Export}, which shares the same box. A workbook saved as
-\fname{ACCOUNTS.XLSX} from \menupath{Save} is a \fname{.X16S} file with a
-misleading name; Excel will not open it and \ccprod{} will.
+\menupath{Save as} always writes the native \fname{.X16S} format, whatever name
+you give it, and its hint says so: \msg{end it .X16S}. \menupath{Export}
+shares the same box but shows \msg{end it .XLSX for Excel, .CSV for plain
+text}, because that is the command where the extension decides the format.
+
+The hint is advice, not a rule. A workbook saved as \fname{ACCOUNTS.XLSX} from
+\menupath{Save as} is still a \fname{.X16S} file with a misleading name ---
+Excel will not open it and \ccprod{} will.
+\end{ccnote}
+
+\begin{ccnote}
+The box does not open empty. \menupath{Save as} and \menupath{Export} suggest
+the workbook's own name if it has one, and otherwise the last name used --- so
+after importing \fname{FIGURES.CSV}, \menupath{Export} offers
+\fname{FIGURES.CSV} back. Type over it, or edit it, or press \key{Return} to
+accept it.
 \end{ccnote}
 
 \subsection{Saving is safe}
