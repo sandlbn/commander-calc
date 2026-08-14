@@ -233,6 +233,10 @@ test: $(HOSTDIR)/run_tests
 	@python3 tools/make_xlsx_fixtures.py $(HOSTDIR)/sd > /dev/null
 	@python3 tools/make_sheets_xlsx.py $(HOSTDIR)/sd > /dev/null
 	@python3 tools/make_demo_xlsx.py $(HOSTDIR)/sd > /dev/null
+	@# The shipped .X16S examples, so the tests open the same files the
+	@# release does. An example whose formulas this build cannot compute is
+	@# a broken example, and nothing else would notice.
+	@python3 tools/make_x16s.py $(HOSTDIR)/sd > /dev/null
 	@$(HOSTDIR)/run_tests
 
 # ---- on-target XLSX import test --------------------------------------
@@ -351,8 +355,13 @@ EMUFLAGS := -rom $(ROM) -fsroot $(BUILD) -prg $(BUILD)/$(NAME) -run \
 # Written into $(BUILD), which is what -fsroot serves, so `make examples run`
 # puts them in front of F7 with no copying about.
 .PHONY: examples
+# Two sets, and they are not the same thing. make_examples writes .xlsx --
+# workbooks to IMPORT, which is what proves the importer. make_x16s writes
+# the native format directly, without the machine, so the reader is tested
+# against files it did not produce itself.
 examples:
 	@python3 tools/make_examples.py $(BUILD)
+	@python3 tools/make_x16s.py $(BUILD) | sed 's/^/  /'
 
 .PHONY: run
 run: x16 examples
@@ -503,6 +512,11 @@ release: test x16
 	        exit 1; }; \
 	done
 	@python3 tools/make_examples.py $(CARDDIR) >/dev/null
+	@python3 tools/make_x16s.py $(CARDDIR) >/dev/null
+	@# make_nasdaq caches its download beside what it writes, and that is a
+	@# megabyte of JSON -- more than half the archive, and of no use on the
+	@# card. NDQNAT.X16S is what it was fetched for.
+	@rm -f $(CARDDIR)/ndq_daily.json
 	@# clean first: a stale .aux from an older source tree fails the pdflatex
 	@# run outright ("Extra }, or forgotten \endgroup") instead of being
 	@# overwritten. Falls back to the committed pdf/ copy with no TeX here.

@@ -385,16 +385,175 @@ def nasdaq(b, outdir):
         r += 1
 
 
+def loan(b):
+    """An amortisation schedule: the case for absolute references.
+
+    Every row reads the rate and the payment from the same two cells, so
+    every one of them is written $B$2 and $B$3. That is the distinction the
+    evaluator cannot see -- the compiler discards the $ -- and it only
+    survives because the reference rewriter works on the source text. Copy a
+    row of this with Ctrl+C and paste it lower down: the balance references
+    must follow the row while the rate must not.
+    """
+    money = b.style(NF_CURRENCY, places=2)
+    pct   = b.style(NF_PERCENT)
+    two   = b.style(NF_DECIMAL, places=2)
+
+    s = b.sheet("Loan", [14, 12, 12, 12, 12])
+    s.text(0, 0, "Amount");        s.num(0, 1, 12000, money)
+    s.text(1, 0, "Rate a year");   s.num(1, 1, 0.06, pct)
+    s.text(2, 0, "Payment");       s.num(2, 1, 400, money)
+
+    s.text(4, 0, "Month");    s.text(4, 1, "Opening")
+    s.text(4, 2, "Interest"); s.text(4, 3, "Capital")
+    s.text(4, 4, "Closing")
+
+    # Row 6 opens with the amount; every later row opens where the last
+    # one closed, so the chain is only correct if the whole column is.
+    s.num(5, 0, 1)
+    s.formula(5, 1, "=B1", money)
+    for i in range(24):
+        r = 5 + i                       # 0-based row of this instalment
+        excel = r + 1                   # what the user sees
+        if i:
+            s.formula(r, 0, "=A%d+1" % (excel - 1))
+            s.formula(r, 1, "=E%d" % (excel - 1), money)
+        # Interest on the opening balance, rounded to the penny.
+        s.formula(r, 2, "=ROUND(B%d*$B$2/12,2)" % excel, money)
+        # Never pay off more than is left.
+        s.formula(r, 3, "=IF($B$3>B%d+C%d,B%d,$B$3-C%d)" % (excel, excel,
+                                                            excel, excel),
+                  money)
+        s.formula(r, 4, "=B%d+C%d-D%d" % (excel, excel, excel), money)
+
+    last = 5 + 24
+    s.text(last + 1, 0, "Interest paid")
+    s.formula(last + 1, 2, "=SUM(C6:C%d)" % last, money)
+    s.text(last + 2, 0, "Months to clear")
+    s.formula(last + 2, 2, "=COUNT(A6:A%d)" % last, two)
+
+
+def grades(b):
+    """Two sheets and the rest of the function table.
+
+    Marks on one sheet, everything worked out on another, so every formula
+    on the summary crosses a sheet boundary. AVERAGE, MIN, MAX, COUNT, IF,
+    AND, OR and NOT all appear, and the pass column is a boolean a formula
+    produced rather than one that was typed.
+    """
+    pct  = b.style(NF_PERCENT)
+    one  = b.style(NF_DECIMAL, places=1)
+    whole = b.style(NF_INTEGER)
+
+    m = b.sheet("Marks", [14, 8, 8, 8, 8])
+    m.text(0, 0, "Student")
+    for i, paper in enumerate(("Paper 1", "Paper 2", "Paper 3", "Paper 4")):
+        m.text(0, 1 + i, paper)
+    people = [("Aldridge",  72, 65, 80, 58), ("Baxter",    45, 52, 39, 61),
+              ("Chandra",   88, 91, 84, 95), ("Delaney",   61, 58, 67, 70),
+              ("Ellis",     30, 41, 28, 35), ("Fairbairn", 77, 69, 73, 81),
+              ("Gill",      55, 60, 49, 52), ("Hodge",     93, 87, 90, 88),
+              ("Ives",      66, 71, 64, 69), ("Jarvis",    38, 44, 51, 40)]
+    for i, (who, *marks) in enumerate(people):
+        m.text(1 + i, 0, who)
+        for c, v in enumerate(marks):
+            m.num(1 + i, 1 + c, v, whole)
+
+    g = b.sheet("Summary", [14, 9, 7, 7, 9, 8])
+    g.text(0, 0, "Student"); g.text(0, 1, "Average")
+    g.text(0, 2, "Best");    g.text(0, 3, "Worst")
+    g.text(0, 4, "Spread");  g.text(0, 5, "Pass")
+    for i in range(len(people)):
+        r = 1 + i
+        excel = r + 1
+        g.formula(r, 0, "=Marks!A%d" % excel)
+        g.formula(r, 1, "=AVERAGE(Marks!B%d:E%d)" % (excel, excel), one)
+        g.formula(r, 2, "=MAX(Marks!B%d:E%d)" % (excel, excel), whole)
+        g.formula(r, 3, "=MIN(Marks!B%d:E%d)" % (excel, excel), whole)
+        g.formula(r, 4, "=ABS(C%d-D%d)" % (excel, excel), whole)
+        # Pass on the average, but never with a paper under 30.
+        g.formula(r, 5, "=AND(B%d>=50,D%d>=30)" % (excel, excel))
+
+    last = len(people) + 1
+    g.text(last + 1, 0, "Class average")
+    g.formula(last + 1, 1, "=ROUND(AVERAGE(B2:B%d),1)" % last, one)
+    g.text(last + 2, 0, "Sat")
+    g.formula(last + 2, 1, "=COUNT(Marks!B2:B%d)" % last, whole)
+    g.text(last + 3, 0, "Top mark")
+    g.formula(last + 3, 1, "=MAX(Marks!B2:E%d)" % last, whole)
+    g.text(last + 4, 0, "Any failing")
+    g.formula(last + 4, 1, "=NOT(MIN(B2:B%d)>=50)" % last)
+
+
+def shift(b):
+    """Dates, hours and the integer functions, over enough rows to scroll.
+
+    Six weeks of shifts: INT and MOD turn a run of hours into days and
+    hours, LEN measures the names, and the whole thing is deliberately out
+    of date order so that sorting it is worth doing. Long enough that the
+    heading needs freezing to stay useful.
+    """
+    money = b.style(NF_CURRENCY, places=2)
+    dt    = b.style(NF_DATE)
+    two   = b.style(NF_DECIMAL, places=2)
+    whole = b.style(NF_INTEGER)
+
+    s = b.sheet("Shifts", [11, 13, 8, 10, 9, 8, 7])
+    s.text(0, 0, "Date");   s.text(0, 1, "Who")
+    s.text(0, 2, "Hours");  s.text(0, 3, "Rate")
+    s.text(0, 4, "Pay");    s.text(0, 5, "Days")
+    s.text(0, 6, "Left")
+
+    who   = ("Aldridge", "Baxter", "Chandra", "Delaney", "Ellis", "Fairbairn")
+    rates = (14.50, 12.75, 16.00, 13.25, 11.90, 15.40)
+    start = datetime.date(2026, 1, 5)
+    # Deliberately shuffled: sorting by date is the point.
+    order = [17, 3, 29, 11, 0, 24, 8, 35, 14, 2, 21, 6, 33, 19, 1, 27,
+             10, 38, 5, 31, 16, 23, 4, 12, 36, 9, 26, 15, 30, 7]
+    for i, d in enumerate(order):
+        r = 1 + i
+        excel = r + 1
+        s.date(r, 0, start + datetime.timedelta(days=d), dt)
+        s.text(r, 1, who[d % len(who)])
+        s.num(r, 2, 4 + (d * 7) % 9, two)          # 4..12 hours
+        s.num(r, 3, rates[d % len(rates)], money)
+        s.formula(r, 4, "=C%d*D%d" % (excel, excel), money)
+        s.formula(r, 5, "=INT(C%d/8)" % excel, whole)
+        s.formula(r, 6, "=MOD(C%d,8)" % excel, two)
+
+    last = len(order) + 1
+    s.text(last + 1, 1, "Shifts")
+    s.formula(last + 1, 2, "=COUNT(C2:C%d)" % last, whole)
+    s.text(last + 2, 1, "Hours")
+    s.formula(last + 2, 2, "=SUM(C2:C%d)" % last, two)
+    s.text(last + 3, 1, "Longest")
+    s.formula(last + 3, 2, "=MAX(C2:C%d)" % last, two)
+    s.text(last + 4, 1, "Wages")
+    s.formula(last + 4, 4, "=SUM(E2:E%d)" % last, money)
+    s.text(last + 5, 1, "Name width")
+    s.formula(last + 5, 2, "=MAX(LEN(B2),LEN(B3),LEN(B4))", whole)
+
+
 def main(outdir):
-    b = Book()
-    nasdaq(b, outdir)
-    b.write(os.path.join(outdir, "NDQNAT.X16S"))
+    # NDQNAT is the only one that needs the network -- make_nasdaq fetches
+    # the prices, cached in outdir. The build calls this, so a machine
+    # without a connection has to get everything else regardless.
+    try:
+        b = Book()
+        nasdaq(b, outdir)
+        b.write(os.path.join(outdir, "NDQNAT.X16S"))
+    except Exception as e:
+        print("  NDQNAT.X16S skipped: %s" % e)
+
     for name, build in (("INVOICE.X16S", invoice),
                         ("RAIN.X16S", rainfall),
                         ("KINDS.X16S", kinds),
                         ("BUDGET.X16S", budget),
                         ("SALES.X16S", sales),
-                        ("PARTS.X16S", sorting)):
+                        ("PARTS.X16S", sorting),
+                        ("LOAN.X16S", loan),
+                        ("GRADES.X16S", grades),
+                        ("SHIFTS.X16S", shift)):
         b = Book()
         build(b)
         b.write(os.path.join(outdir, name))
