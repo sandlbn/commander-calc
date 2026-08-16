@@ -62,9 +62,29 @@ static void build_status(void)
 /* See the write in main(). */
 #define EMU_CMDKEYS (*(volatile uint8_t *)0x9FB7)
 
+/* The rest of the start-up, split out so that main() has exactly one exit.
+ *
+ * Every one of these can fail, and each used to `return 1` on the spot --
+ * past the cleanup, leaving the emulator's command keys intercepted and,
+ * if the screen had already come up, the machine in ISO mode. That is the
+ * worst moment to hand back a keyboard that does not work: something has
+ * just gone wrong and the user needs BASIC to find out what. */
+static uint8_t bring_up(void)
+{
+    if (bank_heap_init(1, 0) != ERR_OK)
+        return 0;
+    if (wb_init() != ERR_OK)
+        return 0;
+    if (grid_init() != ERR_OK)
+        return 0;
+    return 1;
+}
+
 int main(void)
 {
     uint8_t key;
+    uint8_t rc = 1;                     /* until the loop is reached */
+    uint8_t screen_up = 0;
 
     /* Before anything else: golden RAM holds statics the startup code does
      * not clear, and reading one first would read whatever the previous
@@ -77,36 +97,34 @@ int main(void)
      * whatever this says. See docs/design/platform.md. */
     EMU_CMDKEYS = 1;
 
-    if (screen_init() != ERR_OK)
-        return 1;
-    if (bank_heap_init(1, 0) != ERR_OK)
-        return 1;
-    if (wb_init() != ERR_OK)
-        return 1;
-    if (grid_init() != ERR_OK)
-        return 1;
-
-    STACK_FLOOR = CANARY;
-    build_status();
-    grid_set_status(status);
-    grid_render_all();
-
-    mouse_begin();
-
-    for (;;) {
-        key = kbd_get();
-        if (key && grid_key(key) == GRID_QUIT)
-            break;
-
-        /* Polled every pass, not only when a key arrived: the wheel is
-         * reported as movement since the previous poll, so a skipped poll
-         * discards it. */
-        mouse_poll();
-        if (grid_mouse(mouse_px, mouse_py, mouse_btn, mouse_whl) == GRID_QUIT)
-            break;
-        if (STACK_FLOOR != CANARY) {
-            grid_set_status(S_stack);
+    if (screen_init() == ERR_OK) {
+        screen_up = 1;
+        if (bring_up()) {
             STACK_FLOOR = CANARY;
+            build_status();
+            grid_set_status(status);
+            grid_render_all();
+
+            mouse_begin();
+
+            for (;;) {
+                key = kbd_get();
+                if (key && grid_key(key) == GRID_QUIT)
+                    break;
+
+                /* Polled every pass, not only when a key arrived: the
+                 * wheel is reported as movement since the previous poll,
+                 * so a skipped poll discards it. */
+                mouse_poll();
+                if (grid_mouse(mouse_px, mouse_py, mouse_btn, mouse_whl)
+                        == GRID_QUIT)
+                    break;
+                if (STACK_FLOOR != CANARY) {
+                    grid_set_status(S_stack);
+                    STACK_FLOOR = CANARY;
+                }
+            }
+            rc = 0;                     /* reached the loop and left it */
         }
     }
 
@@ -118,10 +136,11 @@ int main(void)
      * -- leave it on and BASIC's own keyboard is wrong afterwards, in a way
      * that does not look like this program's doing by the time anyone
      * notices it. */
-    mouse_end();
+    mouse_end();                        /* harmless if it never started */
     EMU_CMDKEYS = 0;                    /* the emulator's keys are its own
                                          * again; see the write above */
-    screen_clear(COLOR(COL_WHITE, COL_BLUE));
-    screen_reset_charset();
-    return 0;
+    if (screen_up)
+        screen_clear(COLOR(COL_WHITE, COL_BLUE));
+    screen_reset_charset();             /* two BSOUTs; safe either way */
+    return rc;
 }
