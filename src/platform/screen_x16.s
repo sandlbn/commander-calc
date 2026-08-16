@@ -11,6 +11,7 @@
 ;
 
         .export         _screen_set_iso_charset
+        .export         _screen_reset_charset
         .export         _screen_get_size
 
 screen_set_charset = $FF62
@@ -36,6 +37,26 @@ bsout              = $FFD2
         jsr     bsout
         lda     #1              ; 1 = ISO glyphs
         jmp     screen_set_charset
+.endproc
+
+; void screen_reset_charset(void);
+;
+; Undo both halves of the switch above, in the order BASIC expects:
+;
+;   $8F  ISO mode OFF -- the keyboard goes back to returning PETSCII, which
+;        is what everything after this program assumes. This is the one that
+;        matters: leave it on and BASIC's own keyboard is subtly wrong,
+;        which is not obviously this program's fault by then.
+;   $8E  the uppercase/graphics charset, which is how the machine starts.
+;
+; Sent through BSOUT rather than screen_set_charset because $8F is a control
+; code and not a charset number; the two are different mechanisms and only
+; the pair together puts the machine back.
+.proc   _screen_reset_charset
+        lda     #$8F            ; ISO off: keyboard returns PETSCII again
+        jsr     bsout
+        lda     #$8E            ; uppercase/graphics, the boot charset
+        jmp     bsout
 .endproc
 
 ; uint16_t screen_get_size(void);

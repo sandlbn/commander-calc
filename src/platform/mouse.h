@@ -53,6 +53,9 @@ extern int8_t mouse_whl;
  * position simply never changes and no button is ever down. */
 void mouse_begin(void);
 
+/* Put the pointer away. Every exit path must call this. */
+void mouse_end(void);
+
 /* Refresh all four variables above. Cheap enough to call every time round
  * the main loop, which is what the wheel being a delta requires. */
 void mouse_poll(void);

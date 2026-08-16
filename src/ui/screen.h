@@ -40,6 +40,10 @@ typedef uint8_t color_t;
 #define COLOR(fg, bg) ((color_t)(((bg) << 4) | (fg)))
 
 err_t   screen_init(void);
+
+/* Undo screen_init()'s charset and ISO-mode switch, so that whatever runs
+ * after this program gets the machine it expects. See main(). */
+void    screen_reset_charset(void);
 uint8_t screen_cols(void);
 uint8_t screen_rows(void);
 
