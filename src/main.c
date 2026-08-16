@@ -110,7 +110,18 @@ int main(void)
         }
     }
 
-    /* Hand the machine back in a state BASIC can use. */
+    /* Hand the machine back as it was found, in the reverse order it was
+     * taken: the pointer, then the keys, then the screen.
+     *
+     * The charset is the one that bites if it is forgotten. screen_init()
+     * turns ISO mode ON, and that is what makes the KEYBOARD return ASCII
+     * -- leave it on and BASIC's own keyboard is wrong afterwards, in a way
+     * that does not look like this program's doing by the time anyone
+     * notices it. */
+    mouse_end();
+    EMU_CMDKEYS = 0;                    /* the emulator's keys are its own
+                                         * again; see the write above */
     screen_clear(COLOR(COL_WHITE, COL_BLUE));
+    screen_reset_charset();
     return 0;
 }

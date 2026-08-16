@@ -13,3 +13,5 @@ int8_t   mouse_whl;
 
 void mouse_begin(void) { }
 void mouse_poll(void)  { }
+
+void mouse_end(void) { }

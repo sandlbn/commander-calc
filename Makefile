@@ -341,7 +341,7 @@ inspect: $(HOSTDIR)/inspect_xlsx
 # slowest thing the program does and 16 MHz halves the wait while working on
 # it. Anything being judged on how it will behave on the machine has to run
 # at 8: `make run MHZ=8`, and the on-target harness below is pinned there.
-MHZ := 16
+MHZ := 8
 # 2 MB of banked RAM, the most the emulator offers. The workbook heap is
 # banked RAM and nothing else competes for it, so this is the difference
 # between a few thousand cells and a few hundred thousand. The machine

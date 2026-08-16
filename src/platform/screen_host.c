@@ -108,3 +108,6 @@ color_t screen_host_color(uint8_t x, uint8_t y)
 {
     return in_range(x, y) ? colors[y][x] : 0;
 }
+
+/* Nothing to undo off the machine. */
+void screen_reset_charset(void) { }

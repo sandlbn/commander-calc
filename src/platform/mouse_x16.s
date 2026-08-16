@@ -6,7 +6,7 @@
 ; wheel in .X, and writes the position itself.
 
         .export _mouse_px, _mouse_py, _mouse_btn, _mouse_whl
-        .export _mouse_begin, _mouse_poll
+        .export _mouse_begin, _mouse_poll, _mouse_end
 
 mouse_config = $FF68
 mouse_get    = $FF6B
@@ -54,6 +54,14 @@ _mouse_begin:
         jsr screen_mode         ; -> .X = width, .Y = height, in 8px units
         lda #1
         jmp mouse_config        ; tail call: its rts returns to our caller
+
+; void mouse_end(void);
+;
+; Config 0 turns the pointer off. Without it the sprite is left on screen
+; over whatever runs next, and nothing else is going to take it down.
+_mouse_end:
+        lda #0
+        jmp mouse_config
 
 _mouse_poll:
         ldx #_mouse_px          ; zero-page offset of the 4-byte position
