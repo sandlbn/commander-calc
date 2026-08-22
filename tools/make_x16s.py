@@ -20,6 +20,9 @@ import sys, os, struct, zlib, datetime
 VERSION = 3
 EPOCH   = datetime.date(1899, 12, 30)
 
+# cell_style_t flags, from src/workbook/styles.h
+STY_BOLD = 0x01
+
 # cell_type_t, from src/x16sheet.h
 T_EMPTY, T_NUMBER, T_TEXT, T_BOOLEAN, T_DATE, T_FORMULA, T_ERROR = range(7)
 
@@ -398,15 +401,16 @@ def loan(b):
     money = b.style(NF_CURRENCY, places=2)
     pct   = b.style(NF_PERCENT)
     two   = b.style(NF_DECIMAL, places=2)
+    hdr   = b.style(flags=STY_BOLD)
 
     s = b.sheet("Loan", [14, 12, 12, 12, 12])
     s.text(0, 0, "Amount");        s.num(0, 1, 12000, money)
     s.text(1, 0, "Rate a year");   s.num(1, 1, 0.06, pct)
     s.text(2, 0, "Payment");       s.num(2, 1, 400, money)
 
-    s.text(4, 0, "Month");    s.text(4, 1, "Opening")
-    s.text(4, 2, "Interest"); s.text(4, 3, "Capital")
-    s.text(4, 4, "Closing")
+    s.text(4, 0, "Month",    hdr); s.text(4, 1, "Opening",  hdr)
+    s.text(4, 2, "Interest", hdr); s.text(4, 3, "Capital",  hdr)
+    s.text(4, 4, "Closing",  hdr)
 
     # Row 6 opens with the amount; every later row opens where the last
     # one closed, so the chain is only correct if the whole column is.

@@ -30,6 +30,7 @@ Insert row & --- & Layout \\
 Delete row & --- & Layout \\
 Insert column & --- & Layout \\
 Delete column & --- & Layout \\
+Bold & \key{Ctrl+B} & Layout \\
 Column width & --- & Layout \\
 Freeze & --- & Layout \\
 Sort up & --- & Data \\
@@ -115,6 +116,33 @@ cannot.
 \item A cleared cell is empty, not zero. \fn{SUM} and \fn{COUNT} skip it; a
 formula reading it directly gets 0.
 \end{ccsteps}
+
+\cccmd[\key{Ctrl+B}, or the Layout menu.]{Bold}
+\index{Bold command}\index{bold}
+
+Draws the selected cells in a heavier face. One command for both directions:
+if the first cell of the block is already bold the whole block comes off,
+otherwise it goes on --- so a second use undoes the first.
+
+With no block selected it acts on the cell the cursor is in.
+
+Bold is part of the cell's format, not its contents. It is saved in an
+\fname{.X16S}, written into an \fname{.xlsx} that Excel opens as bold, and
+read back from one.
+
+\begin{ccnote}
+The bold face is built when \ccprod{} starts, by thickening the machine's own
+character set into the upper half of the character codes. Those codes hold
+accented letters, which \ccprod{} does not use --- so bold costs a second
+face rather than any memory, and there is only room for the one.
+\end{ccnote}
+
+\begin{cccaution}
+\key{Ctrl+B} and \key{Page Down} send the machine the same code, \lit{\$02}.
+\ccprod{} tells them apart by asking the KERNAL which modifier keys are held
+at that moment, so hold \key{Ctrl} until \key{B} is down. Releasing it in the
+same instant pages down instead.
+\end{cccaution}
 
 \cccmd[Layout menu. No keyboard shortcut.]{Column width}
 \index{Column width command}\index{columns!width}

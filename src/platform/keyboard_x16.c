@@ -22,6 +22,48 @@
  */
 #define KBDBUF_PUT 0xFEC3
 
+/* Ctrl+B and PAGE DOWN are the same byte.
+ *
+ * PETSCII gives Ctrl+letter the code letter-64, so Ctrl+B is $02 -- and the
+ * X16's PAGE DOWN key sends $02 too (Editor chapter, "New Control
+ * Characters"). Nothing in the byte says which was pressed, so moving the
+ * paging command elsewhere would not help: the PgDn key would still arrive
+ * as a request to embolden something.
+ *
+ * kbdbuf_get_modifiers is the way out, and the KERNAL documents it for
+ * exactly this: "detecting combinations of a regular key and a modifier key
+ * in cases where there is no dedicated PETSCII code". Bit 2 is Control.
+ *
+ * It reports what is held NOW rather than what was held when the key was
+ * queued. In a loop that polls the keyboard every pass that is the same
+ * thing; the one way to fool it is to release Ctrl within a frame of B,
+ * which pages down instead. Asked of no other key, so nothing else pays
+ * for it. */
+#define KBD_MODIFIERS 0xFEC0
+#define MOD_CTRL      0x04
+
+/* menu.h's MENU_BOLD, which grid.c dispatches as K_BOLD. Not included from
+ * here: this is the platform layer and that is the UI's header. */
+#define K_BOLD_CODE   0x9C
+#define K_PGDN_CODE   0x02
+
+static uint8_t held;
+
+static uint8_t modifiers(void)
+{
+    __asm__("jsr %w", KBD_MODIFIERS);
+    __asm__("sta %v", held);
+    return held;
+}
+
+/* PAGE DOWN, or Ctrl+B? Only $02 has to ask. */
+static uint8_t disambiguate(uint8_t k)
+{
+    if (k == K_PGDN_CODE && (modifiers() & MOD_CTRL))
+        return K_BOLD_CODE;
+    return k;
+}
+
 static uint8_t stop_taken(uint8_t k)
 {
     if (k == 3) {
@@ -33,7 +75,7 @@ static uint8_t stop_taken(uint8_t k)
 
 uint8_t kbd_get(void)
 {
-    return stop_taken(cbm_k_getin());
+    return disambiguate(stop_taken(cbm_k_getin()));
 }
 
 uint8_t kbd_wait(void)
@@ -44,5 +86,5 @@ uint8_t kbd_wait(void)
         k = cbm_k_getin();
     } while (k == 0);
 
-    return stop_taken(k);
+    return disambiguate(stop_taken(k));
 }

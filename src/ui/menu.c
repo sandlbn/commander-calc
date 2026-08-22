@@ -8,6 +8,7 @@
 #include "../workbook/workbook.h"
 #include "../workbook/cells.h"
 #include "../workbook/strings.h"
+#include "../workbook/styles.h"
 #include "../platform/banked_ram.h"
 #include "../formula/formula.h"
 #include "../util/number.h"
@@ -69,6 +70,7 @@ static const char L_calcn[] = "Recalc now";
 static const char L_calca[] = "Auto recalc";
 static const char L_frz[] = "Freeze";
 static const char L_colw[] = "Column width";
+static const char L_bold[] = "Bold      ^B";
 static const char L_chart[] = "Bars";
 static const char L_chartl[] = "Line";
 static const char L_chartp[] = "Pie";
@@ -124,6 +126,7 @@ static const item_t layout_items[] = {
     { L_inscol, MENU_INS_COL },
     { L_delcol, MENU_DEL_COL },
     { L_colw,   MENU_COL_W   },
+    { L_bold,   MENU_BOLD    },
     { L_frz,    MENU_FREEZE  },
     { 0, 0 }
 };
@@ -1148,6 +1151,60 @@ static uint8_t paste_run(void)
     return 1;
 }
 
+/* Turn bold on or off over the selection.
+ *
+ * One command, not two: whether the block is being made bold or plain is
+ * decided by the FIRST cell in it that exists. Bold already, and the block
+ * comes off; otherwise it goes on. That is what makes a single menu entry
+ * behave the way a toolbar button does.
+ *
+ * Styles are interned, so this does not edit one in place -- editing the
+ * style a cell names would change every other cell naming it too. It asks
+ * for the style it wants and takes back whatever id that turns out to be,
+ * new or already there.
+ *
+ * With no block, sel_r1..sel_c2 collapse onto the cursor, so this is one
+ * cell without needing to know that.
+ */
+static uint8_t bold_run(void)
+{
+    cellstore_t *cs = (cellstore_t *)wb_cells();
+    cell_record_t rec;
+    cell_style_t st;
+    uint16_t r, c;
+    uint8_t on = 0, id, seen = 0;
+
+    for (r = sel_r1; r <= sel_r2 && !seen; ++r)
+        for (c = sel_c1; c <= sel_c2; ++c)
+            if (cells_get(cs, r, c, &rec)) {
+                styles_get(rec.style, &st);
+                on = (uint8_t)!(st.flags & STY_BOLD);
+                seen = 1;
+                break;
+            }
+    if (!seen)
+        return 0;                       /* an empty block: nothing to mark */
+
+    for (r = sel_r1; r <= sel_r2; ++r)
+        for (c = sel_c1; c <= sel_c2; ++c) {
+            if (!cells_get(cs, r, c, &rec))
+                continue;
+            styles_get(rec.style, &st);
+            if (on)
+                st.flags = (uint8_t)(st.flags | STY_BOLD);
+            else
+                st.flags = (uint8_t)(st.flags & ~STY_BOLD);
+            if (styles_add(&st, &id) != ERR_OK)
+                return 1;               /* the table is full; keep what took */
+            rec.style = id;
+            rec.col = (uint8_t)c;
+            cells_set(cs, r, c, &rec);
+        }
+
+    wb_dirty = 1;
+    return 1;
+}
+
 uint8_t menu_cmd(uint8_t key)
 {
     /* HERE, for every command, not in each one that happens to remember.
@@ -1161,6 +1218,8 @@ uint8_t menu_cmd(uint8_t key)
 
     if (key == MENU_INS_ROW || key == MENU_DEL_ROW)
         return row_cmd((uint8_t)(key == MENU_DEL_ROW));
+    if (key == MENU_BOLD)
+        return bold_run();
     if (key == MENU_COPY)
         return copy_run();
     if (key == MENU_PASTE)

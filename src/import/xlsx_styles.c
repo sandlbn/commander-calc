@@ -33,6 +33,10 @@ static const char Y2[] = "numFmt";
 static const char Y3[] = "xf";
 static const char Y4[] = "numFmtId";
 static const char Y5[] = "formatCode";
+static const char Y6[] = "fonts";
+static const char Y7[] = "font";
+static const char Y8[] = "b";
+static const char Y9[] = "fontId";
 
 /* Too large for cc65's stack. */
 static xml_t X;
@@ -139,6 +143,18 @@ static uint8_t classify_code(const char *code, uint8_t *places)
 #define CUSTOM_FIRST 164
 #define CUSTOM_MAX   32
 
+/* Which fonts are bold, one bit each.
+ *
+ * styles.xml lists the fonts once and every xf record names one by index,
+ * so the bold-ness of a cell is two lookups away: xf -> fontId -> the bit.
+ * 64 is well past what a spreadsheet uses; anything beyond it reads as not
+ * bold, which is the safe way to be wrong.
+ *
+ * A <font/> with nothing in it still opens and closes, so the count stays
+ * in step with Excel's numbering -- the tokenizer reports a self-closing
+ * element as a start and an end both. */
+#define FONT_MAX 64
+
 err_t xlsx_parse_styles(blob_t *xml, handle_t out, xlsx_styles_info_t *info)
 {
     /* Custom formats, kept only long enough to resolve the xf records that
@@ -148,12 +164,17 @@ err_t xlsx_parse_styles(blob_t *xml, handle_t out, xlsx_styles_info_t *info)
     static uint8_t  custom_places[CUSTOM_MAX];
     uint8_t custom_count = 0;
 
+    static uint8_t font_bold[FONT_MAX / 8];
+    uint8_t font_count = 0, in_fonts = 0, cur_bold = 0;
+    uint16_t pending_font = 0;
+
     xml_token_t t;
     uint8_t in_cellxfs = 0, in_numfmts = 0;
     uint16_t pending_id = 0;
     uint8_t  i;
 
     memset(info, 0, sizeof *info);
+    memset(font_bold, 0, sizeof font_bold);
     blob_reset_read(xml);
     xml_init(&X, blob_feed, xml);
 
@@ -161,19 +182,26 @@ err_t xlsx_parse_styles(blob_t *xml, handle_t out, xlsx_styles_info_t *info)
         if (t == XML_START) {
             if (xml_is(&X, Y0))       in_numfmts = 1;
             else if (xml_is(&X, Y1))  in_cellxfs = 1;
+            else if (xml_is(&X, Y6))  in_fonts = 1;
+            else if (xml_is(&X, Y7) && in_fonts) cur_bold = 0;
+            else if (xml_is(&X, Y8) && in_fonts) cur_bold = 1;
             else if (xml_is(&X, Y2) && in_numfmts) {
                 pending_id = 0;
                 text[0] = '\0';
             } else if (xml_is(&X, Y3) && in_cellxfs) {
                 pending_id = 0;
+                pending_font = 0;
             }
         } else if (t == XML_ATTR) {
-            if (xml_is(&X, Y4)) {
+            if (xml_is(&X, Y4) || xml_is(&X, Y9)) {
                 uint16_t v = 0;
                 const char *p = X.value;
                 while (*p >= '0' && *p <= '9')
                     v = (uint16_t)(v * 10 + (*p++ - '0'));
-                pending_id = v;
+                if (xml_is(&X, Y9))
+                    pending_font = v;
+                else
+                    pending_id = v;
             } else if (xml_is(&X, Y5)) {
                 uint8_t n = 0;
                 while (X.value[n] && n < sizeof text - 1) {
@@ -206,12 +234,29 @@ err_t xlsx_parse_styles(blob_t *xml, handle_t out, xlsx_styles_info_t *info)
                     } else {
                         fmt = builtin_format(pending_id, &places);
                     }
+                    /* Bold rides in the top bit of the places byte, which
+                     * counts decimals and never needs more than four. A
+                     * third byte a style would widen the table and every
+                     * offset that indexes it. */
+                    if (pending_font < FONT_MAX
+                        && (font_bold[pending_font >> 3]
+                            & (uint8_t)(1 << (pending_font & 7))))
+                        places = (uint8_t)(places | XLSX_PLACES_BOLD);
+
                     bank_poke(out, XLSX_STYLE_FMT(info->count), fmt);
                     bank_poke(out, XLSX_STYLE_PLACES(info->count), places);
                     ++info->count;
                 } else {
                     info->dropped = 1;
                 }
+            } else if (xml_is(&X, Y7) && in_fonts) {
+                if (cur_bold && font_count < FONT_MAX)
+                    font_bold[font_count >> 3] |=
+                        (uint8_t)(1 << (font_count & 7));
+                ++font_count;
+                cur_bold = 0;
+            } else if (xml_is(&X, Y6)) {
+                in_fonts = 0;
             } else if (xml_is(&X, Y0)) {
                 in_numfmts = 0;
             } else if (xml_is(&X, Y1)) {

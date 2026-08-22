@@ -1119,6 +1119,81 @@ static void test_sort_selection_can_be_refused(void)
     wb_display_text(0, 0, b, sizeof b); CHECK_STR(b, "30");   /* untouched */
 }
 
+/* Bold is a block command, and one entry that toggles.
+ *
+ * Which way it goes is decided by the first cell in the block that exists,
+ * so a second press takes it off again -- that is what makes one menu item
+ * behave like a toolbar button. */
+static void test_bold_toggles_a_block(void)
+{
+    cell_record_t rec;
+    cell_style_t st;
+
+    setup();
+    wb_set_text(0, 0, "Month");
+    wb_set_text(0, 1, "Sales");
+    wb_set_text(1, 0, "January");
+
+    /* Select A1:B1 and mark it. */
+    grid_goto(0, 0);
+    grid_key(0x01);                     /* Ctrl+A anchors */
+    grid_key(K_RIGHT);
+    grid_key(MENU_BOLD);
+
+    CHECK(wb_get(0, 0, &rec)); CHECK(wb_bold(&rec));
+    CHECK(wb_get(0, 1, &rec)); CHECK(wb_bold(&rec));
+    /* The row below was never in the block. */
+    CHECK(wb_get(1, 0, &rec)); CHECK(!wb_bold(&rec));
+
+    /* Again, and it comes off. */
+    grid_key(MENU_BOLD);
+    CHECK(wb_get(0, 0, &rec)); CHECK(!wb_bold(&rec));
+    CHECK(wb_get(0, 1, &rec)); CHECK(!wb_bold(&rec));
+}
+
+/* Bold does not disturb the rest of the style.
+ *
+ * Styles are interned, so marking a currency cell has to ask for "currency
+ * AND bold" rather than editing the style the cell names -- which every
+ * other currency cell on the sheet names too. */
+static void test_bold_keeps_the_format(void)
+{
+    cell_record_t rec;
+    cell_style_t st;
+    char b[WB_TEXT_MAX];
+    uint8_t id;
+
+    setup();
+    memset(&st, 0, sizeof st);
+    st.number_format = NF_CURRENCY;
+    st.decimal_places = 2;
+    CHECK_EQ(styles_add(&st, &id), ERR_OK);
+
+    wb_set_text(0, 0, "8.5");
+    wb_get(0, 0, &rec);
+    rec.style = id;
+    wb_set(0, 0, &rec);
+
+    /* A second cell sharing that style must NOT become bold. */
+    wb_set_text(5, 0, "1.25");
+    wb_get(5, 0, &rec);
+    rec.style = id;
+    wb_set(5, 0, &rec);
+
+    grid_goto(0, 0);
+    grid_key(MENU_BOLD);
+
+    CHECK(wb_get(0, 0, &rec));
+    CHECK(wb_bold(&rec));
+    wb_display_text(0, 0, b, sizeof b);
+    CHECK_STR(b, "$8.50");                  /* still currency */
+
+    CHECK(wb_get(5, 0, &rec));
+    CHECK(!wb_bold(&rec));                  /* and it stayed plain */
+    wb_display_text(5, 0, b, sizeof b);
+    CHECK_STR(b, "$1.25");
+}
+
 /* Undo with nothing sorted must do nothing at all. */
 static void test_sort_undo_without_a_sort(void)
 {
@@ -1790,7 +1865,7 @@ static void sel_setup(void)
 static void test_select_grows_with_the_cursor(void)
 {
     sel_setup();
-    grid_key(K_SELECT);
+    grid_key(0x01);                     /* Ctrl+A anchors */
     grid_key(K_DOWN);                   /* A1..A2 */
 
     /* The anchor stays where it was put. */
@@ -1811,7 +1886,7 @@ static void test_select_backwards(void)
 
     sel_setup();
     grid_goto(2, 1);
-    grid_key(K_SELECT);
+    grid_key(0x01);                     /* Ctrl+A anchors */
     grid_goto(0, 0);
 
     grid_sel(&r1, &c1, &r2, &c2);
@@ -1837,7 +1912,7 @@ static void test_clear_empties_the_block(void)
     char b[WB_TEXT_MAX];
 
     sel_setup();
-    grid_key(K_SELECT);
+    grid_key(0x01);                     /* Ctrl+A anchors */
     grid_goto(1, 1);                    /* A1..B2 */
     grid_key(0x14);                     /* Clear */
 
@@ -1852,9 +1927,9 @@ static void test_clear_empties_the_block(void)
 static void test_select_toggles_off(void)
 {
     sel_setup();
-    grid_key(K_SELECT);
+    grid_key(0x01);                     /* Ctrl+A anchors */
     grid_key(K_DOWN);
-    grid_key(K_SELECT);
+    grid_key(0x01);                     /* Ctrl+A anchors */
 
     CHECK_EQ(grid_state()->sel_on, 0);
     CHECK(screen_host_color(GRID_ROWHDR_W, ROW_GRID0 + 1) != C_SEL_EXPECT);
@@ -1881,7 +1956,7 @@ static void test_copy_block_pastes_all_of_it(void)
     char b[WB_TEXT_MAX];
 
     block_setup();
-    grid_key(K_SELECT);
+    grid_key(0x01);                     /* Ctrl+A anchors */
     grid_goto(1, 1);                    /* A1..B2 */
     grid_key(K_COPY);                   /* which lets the block go */
     grid_goto(5, 2);
@@ -1902,10 +1977,10 @@ static void test_block_paste_clears_where_it_was_empty(void)
     wb_set_text(6, 3, "in the way");
 
     grid_goto(0, 0);
-    grid_key(K_SELECT);
+    grid_key(0x01);                     /* Ctrl+A anchors */
     grid_goto(1, 1);
     grid_key(K_COPY);
-    grid_key(K_SELECT);
+    grid_key(0x01);                     /* Ctrl+A anchors */
     grid_goto(5, 2);
     grid_key(K_PASTE);
 
@@ -1921,10 +1996,10 @@ static void test_block_paste_carries_a_formula(void)
     block_setup();
     wb_set_text(1, 1, "=A1+B1");        /* 1 + 2 */
     grid_goto(0, 0);
-    grid_key(K_SELECT);
+    grid_key(0x01);                     /* Ctrl+A anchors */
     grid_goto(1, 1);
     grid_key(K_COPY);
-    grid_key(K_SELECT);
+    grid_key(0x01);                     /* Ctrl+A anchors */
     grid_goto(5, 2);
     grid_key(K_PASTE);
 
@@ -2147,7 +2222,7 @@ static void test_copy_drops_the_block(void)
     char b[WB_TEXT_MAX];
 
     block_setup();
-    grid_key(K_SELECT);
+    grid_key(0x01);                     /* Ctrl+A anchors */
     grid_goto(1, 1);                    /* A1..B2 */
     grid_key(K_COPY);
 
@@ -2169,7 +2244,7 @@ static void test_copy_again_replaces_the_clipboard(void)
     wb_set_text(4, 0, "second");
 
     /* First copy: a block. */
-    grid_key(K_SELECT);
+    grid_key(0x01);                     /* Ctrl+A anchors */
     grid_goto(1, 1);
     grid_key(K_COPY);
 
@@ -2346,6 +2421,8 @@ void test_grid(void)
     test_sort_undo_restores_the_order();
     test_sort_undo_through_the_menu();
     test_sort_undo_only_once();
+    test_bold_toggles_a_block();
+    test_bold_keeps_the_format();
     test_sort_selection_only();
     test_sort_block_keys_on_first_column();
     test_sort_selection_can_be_refused();

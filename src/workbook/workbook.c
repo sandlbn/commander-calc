@@ -488,6 +488,14 @@ err_t wb_clear(uint16_t row, uint16_t col)
 
 /* --- rendering ------------------------------------------------------ */
 
+uint8_t wb_bold(const cell_record_t *rec)
+{
+    cell_style_t st;
+
+    styles_get(rec->style, &st);
+    return (uint8_t)(st.flags & STY_BOLD);
+}
+
 uint8_t wb_align_right(const cell_record_t *rec)
 {
     cell_style_t st;
