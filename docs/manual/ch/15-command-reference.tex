@@ -31,6 +31,8 @@ Delete row & --- & Layout \\
 Insert column & --- & Layout \\
 Delete column & --- & Layout \\
 Bold & \key{Ctrl+B} & Layout \\
+Border & --- & Layout \\
+Underline & --- & Layout \\
 Column width & --- & Layout \\
 Freeze & --- & Layout \\
 Sort up & --- & Data \\
@@ -142,6 +144,37 @@ face rather than any memory, and there is only room for the one.
 \ccprod{} tells them apart by asking the KERNAL which modifier keys are held
 at that moment, so hold \key{Ctrl} until \key{B} is down. Releasing it in the
 same instant pages down instead.
+\end{cccaution}
+
+\cccmd[Layout menu. No keyboard shortcut.]{Border}
+\index{Border command}\index{borders}
+
+Draws a line right round the outside of the selected block. The block's
+first column gets a left edge, its last column a right edge, its first row a
+line above and its last row a line below; cells in the middle are left
+alone, because a box is its outline and not a grid.
+
+One command for both directions: if any cell of the block already has a
+border the whole block's borders come off --- all four edges, the middle
+included --- otherwise the box goes on.
+
+With no block selected it boxes the cell the cursor is in.
+
+A border can be put on cells that have nothing in them, which is how a box
+is drawn round an empty area. Those cells then exist as far as the sheet is
+concerned: they count in the used range that sorting and exporting read.
+Taking the border off again does not remove them; \menupath{Edit > Clear}
+does.
+
+\begin{ccnote}
+Borders are drawn on a second display layer, behind the text, so a bordered
+cell keeps every character of its width and no row is given over to a line.
+\end{ccnote}
+
+\begin{cccaution}
+Borders are saved in an \fname{.X16S} and come back with it. They are
+\emph{not} written into an \fname{.xlsx} and not read from one --- a
+workbook exported to Excel loses them.
 \end{cccaution}
 
 \cccmd[Layout menu. No keyboard shortcut.]{Column width}
@@ -615,6 +648,18 @@ column~\cellref{C}.
 \item The cursor is put on \cellref{A1} afterwards, and a selection is left
 marked.
 \end{ccsteps}
+
+\cccmd[Layout menu. No keyboard shortcut.]{Underline}
+\index{Underline command}\index{borders!underline}
+
+Draws a line under every cell of the selected block --- the usual way to rule
+a heading off from the figures below it. A second use takes it off again.
+
+With no block selected it underlines the cell the cursor is in.
+
+It is the bottom edge of \menupath{Layout > Border}, on every cell rather
+than only the block's last row, and the same notes apply: it survives a
+save, and it does not travel to \fname{.xlsx}.
 
 \cccmd[Edit menu. \key{F5}.]{Undo}
 \index{Undo command}

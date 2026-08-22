@@ -18,6 +18,8 @@ err_t styles_append(const cell_style_t *s)
     if (sty_count >= X16S_MAX_STYLES)
         return ERR_LIMIT;
     bank_write(sty_table, (uint16_t)(sty_count * STYLE_SIZE), s, STYLE_SIZE);
+    if (s->flags & STY_BORD_ALL)
+        sty_bord = 1;                   /* the file brought borders with it */
     ++sty_count;
     return ERR_OK;
 }

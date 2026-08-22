@@ -25,8 +25,8 @@ Six menus, and the division between them is by what a command acts on:
 \menupath{File} & Everything that touches the storage device. \\
 \menupath{Edit} & The current cell and what is in it. \\
 \menupath{Layout} & The shape of the sheet rather than its contents: which rows
-and columns exist, how wide they are, and what stays on screen while the rest
-scrolls. \\
+and columns exist, how wide they are, what stays on screen while the rest
+scrolls, and how cells are marked --- bold, boxed or underlined. \\
 \menupath{Data} & What is done \emph{to} the numbers: sorting them, and
 recalculating them. \\
 \menupath{Chart} & The three ways of drawing them. \\
@@ -138,12 +138,13 @@ the \menupath{Edit} menu on screen closes it and starts an import. Only
   \node[lbl] at (215,0) {Layout};
   \draw[ccink,line width=1.2pt] (215,5) -- (299,5);
   \foreach \i/\n in {0/{Insert row},1/{Delete row},2/{Insert column},
-                     3/{Delete column},4/{Column width},5/Freeze,
-                     6/Bold}{
+                     3/{Delete column},4/{Column width},5/Bold,
+                     6/Border,7/Underline,8/Freeze}{
     \node[itm] at (220,{20+\i*13}) {\n};
   }
-  \node[ann] at (215,103) {The shape of the};
-  \node[ann] at (215,114) {grid itself.};
+  \node[itm] at (272,{20+5*13}) {\keyc{Ctrl}{B}};
+  \node[ann] at (215,142) {The shape of the};
+  \node[ann] at (215,153) {grid itself.};
 
   % ---- Data ----
   \node[lbl] at (0,190) {Data};
@@ -172,8 +173,8 @@ the \menupath{Edit} menu on screen closes it and starts an import. Only
   \node[ann] at (215,280) {Which worksheet is};
   \node[ann] at (215,291) {on screen.};
 
-  \node[ann] at (0,320) {Layout, Data, Chart and Sheet have no keyboard
-                         shortcuts at all.};
+  \node[ann] at (0,320) {Bold is the only shortcut outside File and Edit;
+                         Data, Chart and Sheet have none at all.};
 \end{tikzpicture}
 \caption{Every command on every menu}
 \label{fig:menumap}

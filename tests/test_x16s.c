@@ -122,6 +122,124 @@ static void test_round_trip(void)
     teardown();
 }
 
+/* Put text in a cell and give it a style, the way the program does. */
+static void restyle(uint16_t row, uint16_t col, const char *text, uint8_t id)
+{
+    cell_record_t rec;
+
+    wb_set_text(row, col, text);
+    CHECK(wb_get(row, col, &rec));
+    rec.style = id;
+    CHECK_EQ(cells_set((cellstore_t *)wb_cells(), row, col, &rec), ERR_OK);
+}
+
+/* Border bits survive a save and a reload.
+ *
+ * They live in spare bits of cell_style_t.flags, which the file dumps whole,
+ * so there is no code that writes them -- which is exactly why this is worth
+ * asserting. STYLE_SIZE stayed 5, so nothing in the reader had to change,
+ * and a silent change to either would show up here as flags that come back
+ * clear. */
+static void test_border_flags_round_trip(void)
+{
+    cell_record_t rec;
+    cell_style_t st;
+    uint8_t left, right, both;
+
+    setup();
+
+    /* Three distinct styles: they intern by memcmp over all five bytes, so
+     * these must not collapse into one. */
+    memset(&st, 0, sizeof st);
+    st.flags = STY_BORD_L;
+    CHECK_EQ(styles_add(&st, &left), ERR_OK);
+    st.flags = STY_BORD_R | STY_BOLD;
+    CHECK_EQ(styles_add(&st, &right), ERR_OK);
+    st.flags = STY_BORD_T | STY_BORD_B;
+    st.number_format = NF_CURRENCY;
+    st.decimal_places = 2;
+    CHECK_EQ(styles_add(&st, &both), ERR_OK);
+    CHECK(left != right && right != both);
+
+    /* Style put on through the store, not wb_set(): these records already
+     * own their strings, and wb_set() would hand that ownership to the undo
+     * snapshot and free it under the live cell. Every place in the program
+     * that restyles an existing cell goes this way -- see mark_cell() in
+     * menu.c and the note in compile.c. */
+    restyle(0, 0, "l",   left);
+    restyle(0, 3, "r",   right);
+    restyle(1, 0, "1.5", both);
+
+    /* present before the save */
+    CHECK(wb_get(0, 0, &rec));
+    CHECK_EQ(wb_flags(&rec), STY_BORD_L);
+    CHECK_EQ(wb_cells()->cell_count, 3);
+
+    CHECK_EQ(x16s_save(WB), ERR_OK);
+    CHECK_EQ(wb_reset(), ERR_OK);
+    CHECK_EQ(x16s_open(WB), ERR_OK);
+    CHECK_EQ(wb_cells()->cell_count, 3);
+    CHECK_EQ(wb_cells()->max_row, 1);
+    CHECK_EQ(wb_cells()->max_col, 3);
+
+    CHECK(wb_get(0, 0, &rec));
+    CHECK_EQ(wb_flags(&rec), STY_BORD_L);
+    CHECK(wb_get(0, 3, &rec));
+    CHECK_EQ(wb_flags(&rec), (uint8_t)(STY_BORD_R | STY_BOLD));
+    CHECK(wb_get(1, 0, &rec));
+    CHECK_EQ(wb_flags(&rec), (uint8_t)(STY_BORD_T | STY_BORD_B));
+
+    /* The bordered cell kept its number format too -- flags and format share
+     * the struct, and reading one back does not prove the other. */
+    styles_get(rec.style, &st);
+    CHECK_EQ(st.number_format, NF_CURRENCY);
+
+    teardown();
+}
+
+/* Opening a workbook after editing one must not corrupt what is loaded.
+ *
+ * x16s_load() puts the pending-formula queue in banked RAM, and wb_reset()
+ * throws the whole bank heap away. A queue allocated before the reset
+ * addresses memory the new workbook is then given, so every formula read
+ * from the file is written over the strings that have just been loaded.
+ *
+ * It only shows after an edit: a freshly started workbook lays the heap out
+ * so that the stale handle happens to land harmlessly, which is why every
+ * other test here passes either way. */
+static void test_open_after_editing(void)
+{
+    char b[WB_TEXT_MAX];
+    uint16_t r;
+
+    setup();
+    for (r = 0; r < 40; ++r) {
+        char t[16];
+        sprintf(t, "label %u", (unsigned)r);
+        wb_set_text(r, 0, t);
+        wb_set_text(r, 1, "10");
+        wb_set_text(r, 2, "=B1+B2");
+    }
+    CHECK_EQ(x16s_save(WB), ERR_OK);
+
+    /* Start again and put some work in, the way a user does before opening
+     * something else. This is what leaves the heap laid out differently. */
+    CHECK_EQ(wb_reset(), ERR_OK);
+    for (r = 0; r < 30; ++r)
+        wb_set_text(r, 0, "scribble");
+
+    CHECK_EQ(x16s_open(WB), ERR_OK);
+
+    for (r = 0; r < 40; ++r) {
+        char t[16];
+        sprintf(t, "label %u", (unsigned)r);
+        disp(r, 0, b); CHECK_STR(b, t);
+        disp(r, 2, b); CHECK_STR(b, "20");
+    }
+
+    teardown();
+}
+
 static void test_empty_workbook(void)
 {
     setup();
@@ -621,8 +739,10 @@ static void test_shipped_examples(void)
     teardown();
 }
 
+
 void test_x16s(void)
 {
+    test_border_flags_round_trip();
     test_shipped_examples();
     test_pool_sane_after_import();
     test_sheets_round_trip();
@@ -632,6 +752,7 @@ void test_x16s(void)
     test_col_widths_roundtrip();
     test_all_column_widths_round_trip();
     test_round_trip();
+    test_open_after_editing();
     test_empty_workbook();
     test_resave();
     test_truncated_file();

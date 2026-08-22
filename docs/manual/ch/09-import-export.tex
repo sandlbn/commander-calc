@@ -165,8 +165,11 @@ chart in it still opens --- without the chart.
 
 \begin{cctable}{Feature}{What happens}{2.1in}{2.72in}
 Charts, pivot tables & Not read. Gone. \\
-Fonts, fills, borders, colours & Read past. Only the number format is taken;
-even bold is not imported. \\
+Fonts, fills, colours & Read past. The number format and bold are taken;
+nothing else is. \\
+Borders & Not read, and not written. A workbook exported to Excel loses the
+borders \ccprod{} drew, and a bordered workbook imported from Excel arrives
+without them. \\
 Merged cells & Not handled \\
 Conditional formatting, validation & Not handled \\
 Comments, hyperlinks, images, macros & Not handled \\

@@ -338,15 +338,11 @@ err_t x16s_load(const char *name)
     file_version = (uint8_t)version;
     name_taken = 0;
 
-    /* Somewhere to put the formulas as they go past. Allocated here rather
-     * than on first use so a workbook with none still leaves the list in a
-     * known state, and released by formula_compile_pending() -- which the
-     * caller must invoke, because compiling needs an overlay this one
-     * cannot load. A failure to allocate is not a failure to load: the
-     * cells still arrive, the formulas among them simply do not come back
-     * as formulas. */
+    /* The queue is left empty across the reset below. wb_reset() throws the
+     * whole bank heap away, so a handle taken before it addresses memory
+     * the incoming workbook is about to be given. */
     formula_pending_n = 0;
-    formula_pending = bank_alloc(FPEND_MAX * FPEND_FIELD);
+    formula_pending = H_NULL;
     (void)r_u16(&r);                    /* flags */
     if (version > X16S_VERSION) {
         file_close(&r.f);
@@ -360,6 +356,14 @@ err_t x16s_load(const char *name)
         file_close(&r.f);
         return e;
     }
+
+    /* Somewhere to put the formulas as they go past, taken from the heap
+     * the reset has just laid out. Released by formula_compile_pending(),
+     * which the caller must invoke because compiling needs an overlay this
+     * one cannot load. A failure to allocate is not a failure to load: the
+     * cells still arrive, the formulas among them simply do not come back
+     * as formulas. */
+    formula_pending = bank_alloc(FPEND_MAX * FPEND_FIELD);
 
     for (;;) {
         uint32_t len;

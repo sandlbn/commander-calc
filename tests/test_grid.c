@@ -1194,6 +1194,160 @@ static void test_bold_keeps_the_format(void)
     CHECK_STR(b, "$1.25");
 }
 
+/* Border boxes the block: a line right round the outside, nothing through
+ * the middle, and it makes the cells it needs so the box shows on an empty
+ * block. */
+static void test_border_boxes_a_block(void)
+{
+    cell_record_t rec;
+
+    setup();
+    wb_set_text(0, 0, "a"); wb_set_text(0, 1, "b"); wb_set_text(0, 2, "c");
+
+    grid_goto(0, 0);
+    grid_key(0x01);                     /* Ctrl+A anchors */
+    grid_key(K_RIGHT); grid_key(K_RIGHT);
+    grid_key(MENU_BORDER);
+
+    /* One row, so every cell is on the top and the bottom of the box, and
+     * only the ends carry a side. */
+    CHECK(wb_get(0, 0, &rec));
+    CHECK_EQ(wb_flags(&rec) & STY_BORD_ALL,
+             STY_BORD_L | STY_BORD_T | STY_BORD_B);
+    CHECK(wb_get(0, 1, &rec));
+    CHECK_EQ(wb_flags(&rec) & STY_BORD_ALL, STY_BORD_T | STY_BORD_B);
+    CHECK(wb_get(0, 2, &rec));
+    CHECK_EQ(wb_flags(&rec) & STY_BORD_ALL,
+             STY_BORD_R | STY_BORD_T | STY_BORD_B);
+
+    /* Again and it comes off. */
+    grid_key(MENU_BORDER);
+    CHECK(wb_get(0, 0, &rec));
+    CHECK_EQ(wb_flags(&rec) & STY_BORD_ALL, 0);
+}
+
+/* Two rows deep: the sides run down both, the top is only on the first row
+ * and the bottom only on the last, and the inside is untouched. */
+static void test_border_box_two_rows(void)
+{
+    cell_record_t rec;
+
+    setup();
+    grid_goto(0, 0);
+    grid_key(0x01);
+    grid_key(K_RIGHT); grid_key(K_RIGHT);
+    grid_key(K_DOWN);
+    grid_key(MENU_BORDER);
+
+    CHECK(wb_get(0, 0, &rec));
+    CHECK_EQ(wb_flags(&rec) & STY_BORD_ALL, STY_BORD_L | STY_BORD_T);
+    CHECK(wb_get(0, 2, &rec));
+    CHECK_EQ(wb_flags(&rec) & STY_BORD_ALL, STY_BORD_R | STY_BORD_T);
+    CHECK(wb_get(1, 0, &rec));
+    CHECK_EQ(wb_flags(&rec) & STY_BORD_ALL, STY_BORD_L | STY_BORD_B);
+    CHECK(wb_get(1, 2, &rec));
+    CHECK_EQ(wb_flags(&rec) & STY_BORD_ALL, STY_BORD_R | STY_BORD_B);
+
+    /* The middle of the top edge gets the top and nothing else. */
+    CHECK(wb_get(0, 1, &rec));
+    CHECK_EQ(wb_flags(&rec) & STY_BORD_ALL, STY_BORD_T);
+    /* And a cell with no edge on it was never created. */
+    CHECK_EQ(wb_get(2, 1, &rec), 0);
+}
+
+/* A border on empty cells creates the records it needs to hang from. */
+static void test_border_makes_empty_cells(void)
+{
+    cell_record_t rec;
+
+    setup();
+    grid_goto(3, 0);
+    grid_key(0x01);
+    grid_key(K_RIGHT);
+    grid_key(MENU_BORDER);
+
+    /* Nothing was ever typed here, but the cells exist now and carry the
+     * edges -- otherwise the line could not be drawn at all. */
+    CHECK(wb_get(3, 0, &rec));
+    CHECK(wb_flags(&rec) & STY_BORD_L);
+    CHECK(wb_get(3, 1, &rec));
+    CHECK(wb_flags(&rec) & STY_BORD_R);
+}
+
+/* Underline marks every cell of the block, and does not disturb the
+ * format -- styles are interned, so this is the trap. */
+static void test_underline_fills_the_block(void)
+{
+    cell_record_t rec;
+    cell_style_t st;
+    char b[WB_TEXT_MAX];
+    uint8_t id;
+
+    setup();
+    memset(&st, 0, sizeof st);
+    st.number_format = NF_CURRENCY;
+    st.decimal_places = 2;
+    CHECK_EQ(styles_add(&st, &id), ERR_OK);
+    wb_set_text(0, 0, "8.5");
+    wb_get(0, 0, &rec);
+    rec.style = id;
+    wb_set(0, 0, &rec);
+
+    grid_goto(0, 0);
+    grid_key(0x01);
+    grid_key(K_RIGHT);
+    grid_key(MENU_UNDER);
+
+    CHECK(wb_get(0, 0, &rec)); CHECK(wb_flags(&rec) & STY_BORD_B);
+    CHECK(wb_get(0, 1, &rec)); CHECK(wb_flags(&rec) & STY_BORD_B);
+
+    /* The currency format survived the style swap. */
+    wb_get(0, 0, &rec);
+    styles_get(rec.style, &st);
+    CHECK_EQ(st.number_format, NF_CURRENCY);
+    wb_display_text(0, 0, b, sizeof b);
+    CHECK_STR(b, "$8.50");
+}
+
+/* What actually reaches the screen: the border layer, one character at a
+ * time, over a bordered cell.
+ *
+ * This is the half the flags cannot prove. A border is drawn behind the
+ * text on a layer of its own, so the cell's characters have to be
+ * untouched by it -- which is the whole point of doing it this way -- and
+ * the left edge has to land on the cell's first character and the right on
+ * its last, not somewhere in between. */
+static void test_border_reaches_the_screen(void)
+{
+    /* A1 is drawn at the top left of the grid: the row header is
+     * GRID_ROWHDR_W wide and the first data row is ROW_GRID0. */
+    const uint8_t x = GRID_ROWHDR_W, y = 3, w = GRID_DEF_COL_W;
+
+    setup();
+    wb_set_text(0, 0, "ab");
+
+    grid_goto(0, 0);
+    grid_key(MENU_BORDER);              /* no block: the cursor cell alone */
+    grid_render_all();
+
+    /* Both sides, top and bottom, on one cell. */
+    CHECK_EQ(screen_host_border(x, y),
+             SCREEN_B_L | SCREEN_B_T | SCREEN_B_B);
+    CHECK_EQ(screen_host_border((uint8_t)(x + w - 1), y),
+             SCREEN_B_R | SCREEN_B_T | SCREEN_B_B);
+    /* In between: the horizontals only, no vertical through the text. */
+    CHECK_EQ(screen_host_border((uint8_t)(x + 1), y),
+             SCREEN_B_T | SCREEN_B_B);
+
+    /* The text is drawn across the whole width regardless -- the border
+     * took no character from it. */
+    CHECK_EQ(screen_host_row(y)[x], 'a');
+    CHECK_EQ(screen_host_row(y)[x + 1], 'b');
+
+    /* The cell beside it has no border, and its run was cleared. */
+    CHECK_EQ(screen_host_border((uint8_t)(x + w), y), 0);
+}
+
 /* Undo with nothing sorted must do nothing at all. */
 static void test_sort_undo_without_a_sort(void)
 {
@@ -1519,7 +1673,12 @@ static void test_function_names_survive(void)
  * menu_run(), in the overlay it already lives in, because one more case
  * label there was measured at 28 resident bytes against 23 available.
  */
-#define C_BAR_EXPECT COLOR(COL_WHITE, COL_BLUE)
+/* The chart draws on the machine's own palette, not the program's swapped
+ * one, so its colours are written in its indices -- see chart.c. */
+#define CH_BLACK 0
+#define CH_WHITE 1
+
+#define C_BAR_EXPECT COLOR(CH_WHITE, COL_BLUE)
 #define CHART_TOP 3
 #define AXIS_W    9
 
@@ -1595,7 +1754,7 @@ static void test_chart_returns_to_the_grid(void)
  * with nothing in it reads as a dot of noise where '*' reads as a point.
  * The ISO charset has '*' and '|', which is exactly what it does not have
  * for the solid blocks a bar needs. */
-#define C_LINE_EXPECT COLOR(COL_WHITE, COL_RED)
+#define C_LINE_EXPECT COLOR(CH_WHITE, COL_RED)
 static uint16_t cells_of(color_t c);   /* defined with the pie tests */
 
 static void test_chart_line_plots_the_points(void)
@@ -1640,8 +1799,8 @@ static void test_chart_line_rises(void)
  * by walking the radius -- no arctangent, no framebuffer, and every cell
  * it touches goes through screen_put(), so the shape is assertable here.
  */
-#define C_SLICE1 COLOR(COL_WHITE, COL_BLUE)
-#define C_SLICE2 COLOR(COL_BLACK, COL_YELLOW)
+#define C_SLICE1 COLOR(CH_WHITE, COL_BLUE)
+#define C_SLICE2 COLOR(CH_BLACK, COL_YELLOW)
 
 static uint16_t cells_of(color_t c)
 {
@@ -2421,6 +2580,11 @@ void test_grid(void)
     test_sort_undo_restores_the_order();
     test_sort_undo_through_the_menu();
     test_sort_undo_only_once();
+    test_border_boxes_a_block();
+    test_border_box_two_rows();
+    test_border_makes_empty_cells();
+    test_underline_fills_the_block();
+    test_border_reaches_the_screen();
     test_bold_toggles_a_block();
     test_bold_keeps_the_format();
     test_sort_selection_only();

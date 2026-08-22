@@ -14,6 +14,11 @@
  *
  * This is resident because it is the seam between two overlays and has to
  * be somewhere neither of them is. It is small on purpose.
+ *
+ * THE QUEUE MUST BE ALLOCATED AFTER ANY wb_reset(). A reset re-initialises
+ * the whole bank heap, so a handle taken before it addresses memory the
+ * incoming workbook is then given, and the formulas written through it land
+ * on the strings and cells that have just been loaded.
  */
 #include "formula.h"
 #include "../workbook/workbook.h"
