@@ -96,6 +96,10 @@ uint8_t wb_edit_text(uint16_t row, uint16_t col, char *out, uint8_t max);
 /* 1 when the cell should be right-aligned. */
 uint8_t wb_align_right(const cell_record_t *rec);
 
+/* Whether the cell's style asks for bold. Beside wb_align_right() because
+ * it answers the same kind of question and the renderer asks both. */
+uint8_t wb_bold(const cell_record_t *rec);
+
 /* One level, as specified. Undoing does not itself become undoable. */
 /* Recalculate after an edit. Does nothing on a sheet with no formulas, so
  * the common case never touches the overlay. */

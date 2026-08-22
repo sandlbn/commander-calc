@@ -28,6 +28,8 @@
 #define XLSX_STYLE_BYTES (X16S_MAX_STYLES * 2)
 #define XLSX_STYLE_FMT(i)    ((uint16_t)((i) * 2))
 #define XLSX_STYLE_PLACES(i) ((uint16_t)((i) * 2 + 1))
+/* Bold travels in the top bit of the places byte; see xlsx_parse_styles(). */
+#define XLSX_PLACES_BOLD     0x80
 
 typedef struct {
     uint8_t count;

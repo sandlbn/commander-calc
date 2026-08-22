@@ -90,17 +90,20 @@ static uint8_t style_for(handle_t styles, uint8_t count, uint16_t xf)
 {
     cell_style_t s;
     uint8_t id = 0;
-    uint8_t fmt;
+    uint8_t fmt, places;
 
     if (!count || xf >= count)
         return 0;
     fmt = bank_peek(styles, XLSX_STYLE_FMT(xf));
-    if (fmt == NF_GENERAL)
+    places = bank_peek(styles, XLSX_STYLE_PLACES(xf));
+    if (fmt == NF_GENERAL && !(places & XLSX_PLACES_BOLD))
         return 0;                   /* style 0 is General already */
 
     memset(&s, 0, sizeof s);
     s.number_format = fmt;
-    s.decimal_places = bank_peek(styles, XLSX_STYLE_PLACES(xf));
+    if (places & XLSX_PLACES_BOLD)
+        s.flags = STY_BOLD;
+    s.decimal_places = (uint8_t)(places & (uint8_t)~XLSX_PLACES_BOLD);
     if (styles_add(&s, &id) != ERR_OK)
         return 0;
     return id;

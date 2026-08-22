@@ -236,6 +236,9 @@ test: $(HOSTDIR)/run_tests
 	@# The shipped .X16S examples, so the tests open the same files the
 	@# release does. An example whose formulas this build cannot compute is
 	@# a broken example, and nothing else would notice.
+	@# The shipped .xlsx examples too: BUDGET.XLSX is the only
+	@# fixture with a bold font in its styles.xml.
+	@python3 tools/make_examples.py $(HOSTDIR)/sd > /dev/null
 	@python3 tools/make_x16s.py $(HOSTDIR)/sd > /dev/null
 	@$(HOSTDIR)/run_tests
 

@@ -57,6 +57,7 @@ extern uint8_t menu_open_x;
  * are in OVL_CHART now and an overlay cannot load another. */
 /* Not in the $F0 block with the rest: that is full. The X16 keyboard
  * sends nothing above $9D, so $9E is as safe a stand-in as $F0 was. */
+#define MENU_BOLD       0x9C
 #define MENU_COL_W      0x9E
 #define MENU_REPLACE    0x9F
 

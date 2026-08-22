@@ -278,8 +278,42 @@ static void test_demo_all_three(void)
     wb_sheet_name(2, name); CHECK_STR(name, "Summary");
 }
 
+/* A bold heading survives the import.
+ *
+ * styles.xml lists its fonts once and every xf names one by index, so bold
+ * is two lookups from a cell: xf -> fontId -> the <b/>. Nothing else in the
+ * importer follows that chain, which is why it is worth a test of its own.
+ *
+ * BUDGET.XLSX has a bold heading row and plain data under it. */
+static void test_import_reads_bold(void)
+{
+    cell_record_t rec;
+    cell_style_t st;
+
+    setup();
+    CHECK_EQ(xlsx_import("BUDGET.XLSX"), ERR_OK);
+
+    CHECK(wb_get(0, 0, &rec));                  /* A1, a heading */
+    styles_get(rec.style, &st);
+    CHECK(st.flags & STY_BOLD);
+    CHECK(wb_bold(&rec));
+
+    CHECK(wb_get(1, 0, &rec));                  /* A2, ordinary text */
+    styles_get(rec.style, &st);
+    CHECK(!(st.flags & STY_BOLD));
+
+    /* The money column keeps its format AND stays unbold -- the bold bit
+     * rides in the places byte, so a botched unpack would show up here. */
+    CHECK(wb_get(1, 1, &rec));                  /* B2, currency */
+    styles_get(rec.style, &st);
+    CHECK_EQ(st.number_format, NF_CURRENCY);
+    CHECK(!(st.flags & STY_BOLD));
+    CHECK_EQ(st.decimal_places, 2);
+}
+
 void test_xlsx_import(void)
 {
+    test_import_reads_bold();
     test_all_sheets();
     test_formulas_land_on_their_own_sheet();
     test_demo_all_three();

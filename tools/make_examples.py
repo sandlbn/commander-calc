@@ -27,6 +27,10 @@ FORMATS = [
     "#,##0",            # 5 thousands
 ]
 
+# One more xf after the formats, using the bold font. Appended rather than
+# inserted so every existing style index keeps its meaning.
+BOLD = len(FORMATS)
+
 def esc(s):
     return (s.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;"))
 
@@ -140,17 +144,25 @@ def write(path, sheets, compress=False):
                    % (164 + i, f.replace('"', "&quot;"))
                    for i, f in enumerate(FORMATS))
     xfs = "".join('<xf numFmtId="%d" fontId="0" fillId="0" borderId="0" '
-                  'applyNumberFormat="1"/>' % (164 + i) for i in range(len(FORMATS)))
+                  'applyNumberFormat="1"/>' % (164 + i)
+                  for i in range(len(FORMATS)))
+    # Style BOLD: General, but the bold font. fontId is what the importer
+    # follows back to the <b/>.
+    xfs += ('<xf numFmtId="0" fontId="1" fillId="0" borderId="0" '
+            'applyFont="1"/>')
     z.writestr("xl/styles.xml",
         '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'
         '<styleSheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">'
         '<numFmts count="%d">%s</numFmts>'
-        '<fonts count="1"><font><sz val="11"/><name val="Calibri"/></font></fonts>'
+        '<fonts count="2">'
+        '<font><sz val="11"/><name val="Calibri"/></font>'
+        '<font><b/><sz val="11"/><name val="Calibri"/></font>'
+        '</fonts>'
         '<fills count="1"><fill><patternFill patternType="none"/></fill></fills>'
         '<borders count="1"><border/></borders>'
         '<cellStyleXfs count="1"><xf numFmtId="0" fontId="0" fillId="0" borderId="0"/></cellStyleXfs>'
         '<cellXfs count="%d">%s</cellXfs></styleSheet>'
-        % (len(FORMATS), fmts, len(FORMATS), xfs))
+        % (len(FORMATS), fmts, len(FORMATS) + 1, xfs))
 
     for i, s in enumerate(sheets):
         z.writestr("xl/worksheets/sheet%d.xml" % (i + 1), s.xml())
@@ -162,9 +174,11 @@ def write(path, sheets, compress=False):
 # --------------------------------------------------------------------------
 def budget():
     s = Sheet("Budget", [18, 12, 12, 12, 10])
-    s.text("A1", "Category"); s.text("B1", "Budget")
-    s.text("C1", "Actual");   s.text("D1", "Left")
-    s.text("E1", "Used")
+    # The heading row is bold, which is also the importer's only fixture
+    # for reading a <b/> font back out of styles.xml.
+    s.text("A1", "Category", BOLD); s.text("B1", "Budget", BOLD)
+    s.text("C1", "Actual",   BOLD); s.text("D1", "Left",   BOLD)
+    s.text("E1", "Used",     BOLD)
     items = [("Rent", 1200, 1200), ("Groceries", 400, 372.4),
              ("Transport", 120, 96.5), ("Utilities", 180, 203.1),
              ("Phone", 35, 35), ("Internet", 45, 45),

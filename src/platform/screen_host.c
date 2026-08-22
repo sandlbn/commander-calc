@@ -111,3 +111,7 @@ color_t screen_host_color(uint8_t x, uint8_t y)
 
 /* Nothing to undo off the machine. */
 void screen_reset_charset(void) { }
+
+/* The host screen is a character buffer; weight is not part of it. Kept so
+ * the shared UI code needs no target test around the call. */
+void screen_bold(uint8_t on) { (void)on; }

@@ -44,6 +44,12 @@ err_t   screen_init(void);
 /* Undo screen_init()'s charset and ISO-mode switch, so that whatever runs
  * after this program gets the machine it expects. See main(). */
 void    screen_reset_charset(void);
+
+/* Draw the next text in bold, or stop. Bold is a second copy of the charset
+ * in the upper 128 codes, so this simply sets bit 7 on every character
+ * written until it is turned off again. MUST BE TURNED OFF: it is a mode,
+ * not an argument, and anything drawn after it is bold too. */
+void    screen_bold(uint8_t on);
 uint8_t screen_cols(void);
 uint8_t screen_rows(void);
 

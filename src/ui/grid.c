@@ -58,6 +58,7 @@
 #define K_COPY      0x03
 #define K_PASTE     0x16
 #define K_FIND      0x06        /* Ctrl+F, and on the Edit menu */
+#define K_BOLD      0x9C        /* Layout > Bold; see menu.h */
 #define K_COL_W     0x9E        /* Layout > Column width; see menu.h */
 #define K_REPLACE   0x9F        /* Edit > Replace */
 #define K_INS_COL   0x1E        /* Edit > Insert/Delete column; see menu.h */
@@ -524,10 +525,14 @@ static void render_cell_at(uint8_t x, uint8_t y, uint8_t w,
     }
 
     wb_display_text(row, col, text, sizeof text);
+    /* Off again before returning: screen_bold() is a mode, and the row
+     * header and everything else on the row would inherit it. */
+    screen_bold(wb_bold(&rec));
     if (wb_align_right(&rec))
         screen_text_right(x, y, text, w, c);
     else
         screen_text(x, y, text, w, c);
+    screen_bold(0);
 }
 
 /* One data row: its header, then every visible cell. */
@@ -1234,15 +1239,17 @@ again:
     case K_FIND:
     case K_REPLACE:
     case K_COL_W:
+    case K_BOLD:
     case K_INS_ROW:
     case K_DEL_ROW:
-        /* All three are in OVL_MENU, which is already the loaded overlay
-         * when one of them came off a menu and is one load away after
-         * Ctrl+F. All three ask for themselves on the bottom line, so
-         * unlike every other command here they need no dialog overlay --
-         * which is the only reason they fit. One call for the three, for
-         * the same reason: see menu_cmd(). It says whether the sheet
-         * actually changed, so Find costs no recalculation. */
+        /* All of these live in OVL_MENU, which is already the loaded
+         * overlay when one came off a menu and is one load away after
+         * Ctrl+F. Each asks for itself on the bottom line where it needs
+         * to ask at all, so unlike every other command here they need no
+         * dialog overlay -- which is the only reason they fit. One call
+         * for all of them, for the same reason: see menu_cmd(). It says
+         * whether the sheet actually changed, so Find costs no
+         * recalculation. */
         if (need_ovl(OVL_MENU) && menu_cmd(key)) {
             /* OVL_MENU wrote everything it could; a paste leaves its
              * formulas for the compiler, which is a second overlay and so
