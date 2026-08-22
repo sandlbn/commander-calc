@@ -21,6 +21,25 @@
 #define VERA_L1_MAPBASE (*(volatile uint8_t *)0x9F35)
 #define VERA_DATA1      (*(volatile uint8_t *)0x9F24)
 #define VERA_L1_TILEBASE (*(volatile uint8_t *)0x9F36)
+#define VERA_DC_VIDEO    (*(volatile uint8_t *)0x9F29)
+#define VERA_L0_CONFIG   (*(volatile uint8_t *)0x9F2D)
+#define VERA_L0_MAPBASE  (*(volatile uint8_t *)0x9F2E)
+#define VERA_L0_TILEBASE (*(volatile uint8_t *)0x9F2F)
+
+/* The border layer, in VRAM the rest of the machine is not using.
+ *
+ * $1:7000 is 16K of map, butted up against the text map at $1:B000 and well
+ * clear of the mouse pointer's sprite image at $1:3000. The tiles go in the
+ * 448 bytes between the ISO charset ($1:F000-$1:F7FF) and the PSG registers
+ * at $1:F9C0 -- sixteen tiles is 128 of them, and TILE_BASE has to be 2K
+ * aligned, which $1:F800 is. Both survive a chart, which draws its bitmap
+ * over $0:0000-$1:2BFF. */
+#define BORD_MAP        0x7000          /* bit 16 set, see bord_seek() */
+#define BORD_MAPBASE    0xB8            /* $1:7000 >> 9 */
+#define BORD_TILEBASE   0xFC            /* $1:F800, 8x8 tiles */
+#define BORD_TILES      0xF800
+#define BORD_COLOR      COL_MGREY
+#define L0_ENABLE       0x10            /* DC_VIDEO */
 
 /* Auto-increment codes for the top nibble of ADDR_H. */
 #define INC1 0x10
@@ -47,6 +66,10 @@ static uint8_t  cols, rows;
  * would otherwise be a fifth parameter on the three hottest calls in the
  * program, and it changes far less often than they are made. */
 static uint8_t  bold;
+/* Non-zero while the border layer is up. Read by every screen_border(),
+ * which is called once per cell drawn, and it is what makes a workbook
+ * with no borders in it cost nothing. */
+static uint8_t  borders;
 X16S_ZP_END
 
 /* Fill the upper 128 character codes with emboldened copies of the lower
@@ -69,11 +92,23 @@ X16S_ZP_END
  * bold ones, each auto-incrementing, so the loop is a read and a write with
  * no address arithmetic in it at all.
  */
+/* Where the character set lives. TILEBASE holds address bits 16:11, so the
+ * shift puts them back and bit 16 comes off the top. */
+static uint16_t glyph_lo;
+static uint8_t  glyph_hi;
+
+static void glyph_base(void)
+{
+    uint8_t tb = VERA_L1_TILEBASE & 0xFC;
+
+    glyph_lo = (uint16_t)((uint16_t)tb << 9);      /* bits 15..11 */
+    glyph_hi = (uint8_t)(tb >> 7);                 /* bit 16      */
+}
+
 static void make_bold(void)
 {
-    uint8_t  tb = VERA_L1_TILEBASE & 0xFC;
-    uint16_t lo = (uint16_t)((uint16_t)tb << 9);   /* bits 15..11 */
-    uint8_t  hi = (uint8_t)(tb >> 7);              /* bit 16       */
+    uint16_t lo = glyph_lo;
+    uint8_t  hi = glyph_hi;
     uint16_t dlo = (uint16_t)(lo + 128 * 8);       /* the upper half */
     uint8_t  dhi = hi;
     uint16_t n;
@@ -95,6 +130,144 @@ static void make_bold(void)
     for (n = 0; n < 128 * 8; ++n) {
         uint8_t g = VERA_DATA0;
         VERA_DATA1 = (uint8_t)(g | (g >> 1));
+    }
+}
+
+/* Generate the sixteen border tiles, one per combination of edges.
+ *
+ * The tile index IS the set of edges -- SCREEN_B_L is bit 0 and so on --
+ * so the renderer can hand a cell's style bits straight over. Drawn rather
+ * than tabulated: the loop is smaller than 128 bytes of rodata would be,
+ * and rodata here is resident.
+ *
+ * Bit 7 is the leftmost pixel of a row, so the left edge is 0x80 and the
+ * right edge 0x01. The top and bottom edges are whole rows.
+ */
+static void make_border_tiles(void)
+{
+    uint8_t n, row;
+
+    VERA_CTRL   = 0;
+    VERA_ADDR_L = (uint8_t)BORD_TILES;
+    VERA_ADDR_M = (uint8_t)(BORD_TILES >> 8);
+    VERA_ADDR_H = 1 | INC1;             /* $1:F800 */
+
+    for (n = 0; n < 16; ++n)
+        for (row = 0; row < 8; ++row) {
+            uint8_t b = 0;
+
+            if ((n & SCREEN_B_T) && row == 0)
+                b = 0xFF;
+            if ((n & SCREEN_B_B) && row == 7)
+                b = 0xFF;
+            if (n & SCREEN_B_L)
+                b |= 0x80;
+            if (n & SCREEN_B_R)
+                b |= 0x01;
+            VERA_DATA0 = b;
+        }
+}
+
+/* Point DATA0 at (x,y) in the border map. Same geometry as the text map --
+ * the layer is configured with the text layer's own width -- so the offset
+ * arithmetic is the same, on a base that always has bit 16 set. */
+static void bord_seek(uint8_t x, uint8_t y)
+{
+    uint16_t lo = (uint16_t)(BORD_MAP + (uint16_t)y * row_stride
+                             + ((uint16_t)x << 1));
+
+    VERA_CTRL   = 0;
+    VERA_ADDR_L = (uint8_t)lo;
+    VERA_ADDR_M = (uint8_t)(lo >> 8);
+    VERA_ADDR_H = 1 | INC1;
+}
+
+void screen_borders(uint8_t on)
+{
+    if (!on) {
+        VERA_DC_VIDEO &= (uint8_t)~L0_ENABLE;
+        borders = 0;
+        return;
+    }
+    if (borders)
+        return;                         /* already up; do not clear it */
+
+    /* Clear before showing: the layer would otherwise flash up whatever the
+     * last program left in those 16K. A row at a time, because the map is
+     * larger than a 16-bit counter is comfortable with. */
+    {
+        uint8_t y;
+        uint16_t n;
+
+        for (y = 0; y < 64; ++y) {
+            bord_seek(0, y);
+            for (n = 0; n < 128; ++n) {
+                VERA_DATA0 = 0;
+                VERA_DATA0 = 0;
+            }
+        }
+    }
+
+    /* The text layer's own map size, so the two grids line up whatever mode
+     * the screen is in; 1bpp tiles with T256C, which makes the unset pixels
+     * transparent and the set ones the colour in the map. */
+    VERA_L0_CONFIG   = (uint8_t)((VERA_L1_CONFIG & 0xF0) | 0x08);
+    VERA_L0_MAPBASE  = BORD_MAPBASE;
+    VERA_L0_TILEBASE = BORD_TILEBASE;
+    VERA_DC_VIDEO   |= L0_ENABLE;
+    borders = 1;
+}
+
+void screen_border(uint8_t x, uint8_t y, uint8_t len, uint8_t bits)
+{
+    uint8_t mid, t;
+
+    if (!borders || !len)
+        return;
+
+    /* The sides belong to the end characters and the top and bottom to all
+     * of them: a ten-character cell gets one left edge, one right edge, and
+     * ten each of top and bottom. A one-character cell gets both sides. */
+    mid = (uint8_t)(bits & (SCREEN_B_T | SCREEN_B_B));
+    t   = (uint8_t)(mid | (bits & SCREEN_B_L));
+    bord_seek(x, y);
+    while (len--) {
+        if (len == 0)
+            t |= (uint8_t)(bits & SCREEN_B_R);
+        VERA_DATA0 = t;
+        VERA_DATA0 = BORD_COLOR;
+        t = mid;
+    }
+}
+
+/* Swap palette entries 0 and 1, or put them back.
+ *
+ * THIS IS WHAT MAKES BORDERS POSSIBLE. A text cell is transparent where its
+ * background is palette entry 0, and transparent is the only way the layer
+ * underneath -- the borders -- can be seen. The paper is white, so entry 0
+ * has to BE white, and the ink moves to entry 1.
+ *
+ * Nothing else in the program changes: COL_BLACK and COL_WHITE are defined
+ * as the swapped indices, so every COLOR(fg, bg) reads the same and draws
+ * the same. The mouse pointer swaps with them and comes out dark on the
+ * paper, which is easier to see than the white one was.
+ *
+ * A palette entry is two bytes: green and blue in the first, red in the
+ * second. Entry n is at $1:FA00 + n * 2.
+ */
+void screen_paper(uint8_t on)
+{
+    VERA_CTRL   = 0;
+    VERA_ADDR_L = 0x00;
+    VERA_ADDR_M = 0xFA;
+    VERA_ADDR_H = 1 | INC1;             /* $1:FA00, entry 0 */
+
+    if (on) {
+        VERA_DATA0 = 0xFF; VERA_DATA0 = 0x0F;   /* 0 := white, the paper */
+        VERA_DATA0 = 0x00; VERA_DATA0 = 0x00;   /* 1 := black, the ink   */
+    } else {
+        VERA_DATA0 = 0x00; VERA_DATA0 = 0x00;   /* 0 := black, as booted */
+        VERA_DATA0 = 0xFF; VERA_DATA0 = 0x0F;   /* 1 := white            */
     }
 }
 
@@ -125,10 +298,23 @@ err_t screen_init(void)
     /* ISO indexes tiles by character code, so ASCII goes straight to VRAM
      * with no screen-code translation anywhere in the program. */
     screen_set_iso_charset();
+    glyph_base();
     make_bold();
+    make_border_tiles();
+    screen_paper(1);
     bold = 0;
+    borders = 0;
 
     return ERR_OK;
+}
+
+/* Put the display back the way BASIC expects it: the palette as it was and
+ * the border layer off. Called from main()'s single exit, beside
+ * screen_reset_charset(). */
+void screen_shutdown(void)
+{
+    screen_borders(0);
+    screen_paper(0);
 }
 
 uint8_t screen_cols(void) { return cols; }

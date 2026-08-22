@@ -139,8 +139,14 @@ int main(void)
     mouse_end();                        /* harmless if it never started */
     EMU_CMDKEYS = 0;                    /* the emulator's keys are its own
                                          * again; see the write above */
-    if (screen_up)
-        screen_clear(COLOR(COL_WHITE, COL_BLUE));
+    if (screen_up) {
+        screen_shutdown();              /* border layer off, palette back */
+        /* THE MACHINE'S OWN INDEX, not the program's. The palette has just
+         * been put back, so COL_WHITE -- which is entry 0 while the program
+         * owns the screen -- is black again by the time this is drawn.
+         * White on blue is the screen BASIC starts with. */
+        screen_clear(COLOR(1, COL_BLUE));
+    }
     screen_reset_charset();             /* two BSOUTs; safe either way */
     return rc;
 }

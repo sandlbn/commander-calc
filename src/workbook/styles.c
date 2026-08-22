@@ -9,6 +9,14 @@ handle_t sty_table;
 uint8_t  sty_count;
 X16S_ZP_END
 
+/* Set the moment any style in the table carries a border, and never
+ * cleared while the workbook is open. The renderer reads it once per
+ * repaint to decide whether to bring the border layer up at all, so a
+ * workbook with no borders in it pays nothing for the feature. Clearing
+ * every border again leaves it set, which costs a layer that draws
+ * nothing -- not worth a scan of the table to find out. */
+uint8_t sty_bord;
+
 err_t styles_init(void)
 {
     cell_style_t def;
@@ -17,6 +25,7 @@ err_t styles_init(void)
     if (sty_table == H_NULL)
         return ERR_NOMEM;
     sty_count = 0;
+    sty_bord = 0;
 
     /* Style 0 is General and is never removed, so every cell_record_t's
      * style byte resolves even before anything has been formatted. */
@@ -62,6 +71,8 @@ err_t styles_add(const cell_style_t *s, uint8_t *id)
         return ERR_LIMIT;
 
     bank_write(sty_table, (uint16_t)(sty_count * STYLE_SIZE), s, STYLE_SIZE);
+    if (s->flags & STY_BORD_ALL)
+        sty_bord = 1;
     *id = sty_count++;
     return ERR_OK;
 }

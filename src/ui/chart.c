@@ -78,26 +78,41 @@
 #endif
 #define CU(n)   ((uint16_t)((n) * CH_SCALE))
 
-#define C_PAPER   COLOR(COL_BLACK, COL_WHITE)
-#define C_BAR     COLOR(COL_WHITE, COL_BLUE)
-#define C_AXIS    COLOR(COL_BLACK, COL_LGREY)
-#define C_TITLE   COLOR(COL_WHITE, COL_MGREY)
+/* The chart draws on the MACHINE'S OWN palette, not the program's.
+ *
+ * The rest of the program swaps palette entries 0 and 1 so that the paper
+ * white is entry 0 and therefore transparent, which is what lets cell
+ * borders show from the layer below. A chart wants the opposite: it puts a
+ * bitmap on that layer and needs entry 0 to be black, because a bitmap
+ * pixel of 0 is the transparent one and the text above it has to let the
+ * bitmap through.
+ *
+ * So chart_screen_on() puts the machine's palette back and
+ * chart_screen_off() restores the program's, and everything in this file is
+ * written in those indices. Do not use COL_BLACK or COL_WHITE here. */
+#define CH_BLACK  0
+#define CH_WHITE  1
+
+#define C_PAPER   COLOR(CH_BLACK, CH_WHITE)
+#define C_BAR     COLOR(CH_WHITE, COL_BLUE)
+#define C_AXIS    COLOR(CH_BLACK, COL_LGREY)
+#define C_TITLE   COLOR(CH_WHITE, COL_MGREY)
 /* Like C_BAR, the BACKGROUND nibble is the palette index the pixels take
  * -- bmp_fill() reads it from there. Red so a line is not mistaken for a
  * bar at a glance. */
-#define C_LINE    COLOR(COL_WHITE, COL_RED)
+#define C_LINE    COLOR(CH_WHITE, COL_RED)
 
 /* The pie's screen. A background of colour 0 is TRANSPARENT in VERA's
  * compositor, and the text layer sits above the bitmap -- so this is what
  * lets the pie be seen at all. Any other paper colour would hide it
  * completely. */
-#define C_GFX     COLOR(COL_WHITE, COL_BLACK)
+#define C_GFX     COLOR(CH_WHITE, CH_BLACK)
 
 /* Ink for text blitted into the bitmap. The LOW nibble is the palette
  * index a glyph pixel takes -- plot1() uses it directly -- where plot()
  * and the swatches take the high one, matching the background convention
  * the slice colours already use. On the host both are just attributes. */
-#define C_INK     COLOR(COL_WHITE, COL_BLACK)
+#define C_INK     COLOR(CH_WHITE, CH_BLACK)
 
 static const char S_title[] = "Column ";
 static const char S_any[]   = "Any key, S saves";
@@ -317,12 +332,18 @@ static void chart_screen_on(void)
     saved_vscale = VERA_DC_VSCALE;
     VERA_DC_VSCALE = PIE_SCALE;
     VERA_DC_VIDEO |= 0x10;      /* layer 0 on */
+    screen_paper(0);            /* the machine's palette: 0 is black again */
 }
 
 static void chart_screen_off(void)
 {
-    VERA_DC_VIDEO &= (uint8_t)~0x10;
+    /* Hands layer 0 back rather than just clearing the enable bit. The
+     * chart has had it in bitmap mode, and screen_borders() will not
+     * reconfigure a layer it believes is already its own, so the next
+     * repaint would draw no borders at all. */
+    screen_borders(0);
     VERA_DC_VSCALE = saved_vscale;
+    screen_paper(1);            /* back to the paper the sheet is drawn on */
 }
 
 #else   /* host: no VERA, so a character cell instead of a pixel */
@@ -555,9 +576,9 @@ static void draw_pie(uint8_t bottom)
      * ends; the last is 360 by construction. */
     static uint16_t bound[BARS_MAX];
     static const color_t slice_col[6] = {
-        COLOR(COL_WHITE, COL_BLUE),   COLOR(COL_BLACK, COL_YELLOW),
-        COLOR(COL_WHITE, COL_RED),    COLOR(COL_BLACK, COL_GREEN),
-        COLOR(COL_BLACK, COL_CYAN),   COLOR(COL_WHITE, COL_PURPLE)
+        COLOR(CH_WHITE, COL_BLUE),   COLOR(CH_BLACK, COL_YELLOW),
+        COLOR(CH_WHITE, COL_RED),    COLOR(CH_BLACK, COL_GREEN),
+        COLOR(CH_BLACK, COL_CYAN),   COLOR(CH_WHITE, COL_PURPLE)
     };
 
     snum_t total, acc, t, full, hundred;

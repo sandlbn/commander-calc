@@ -17,5 +17,6 @@
 
 extern handle_t sty_table;
 extern uint8_t  sty_count;
+extern uint8_t  sty_bord;
 
 #endif /* X16S_STYLES_PRIV_H */

@@ -96,8 +96,9 @@ Each record is five bytes:
 5 Date, 6 Time, 7 Text \\
 1 & 1 & Foreground colour \\
 2 & 1 & Background colour \\
-3 & 1 & Flags: bit 0 bold; bits 1--2 alignment (0 automatic, 1 left, 2 right,
-3 centre) \\
+3 & 1 & Flags: bit 0 bold; bits 1--2 alignment (0 automatic, 1 left,
+2 right, 3 centre); bits 3--6 borders (3 left, 4 right, 5 top, 6 bottom);
+bit 7 unused \\
 4 & 1 & Decimal places \\
 \end{cctablethree}
 

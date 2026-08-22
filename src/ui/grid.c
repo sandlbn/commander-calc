@@ -3,6 +3,7 @@
 #include "filedlg.h"
 #include "menu.h"
 #include "../workbook/workbook.h"
+#include "../workbook/styles_priv.h"   /* sty_bord */
 #include "../workbook/native_file.h"
 #include "../formula/formula.h"
 #include "chart.h"
@@ -59,6 +60,8 @@
 #define K_PASTE     0x16
 #define K_FIND      0x06        /* Ctrl+F, and on the Edit menu */
 #define K_BOLD      0x9C        /* Layout > Bold; see menu.h */
+#define K_BORDER    0x9A        /* Layout > Border */
+#define K_UNDER     0x9B        /* Layout > Underline */
 #define K_COL_W     0x9E        /* Layout > Column width; see menu.h */
 #define K_REPLACE   0x9F        /* Edit > Replace */
 #define K_INS_COL   0x1E        /* Edit > Insert/Delete column; see menu.h */
@@ -304,11 +307,10 @@ static uint16_t col_nth(uint16_t i)
 
 /* Screen row showing sheet row `row`. The inverse of row_at().
  *
- * ONLY VALID FOR A ROW THAT IS ON SCREEN. It does not check, and it is not
- * asked to: its one caller is grid_goto()'s fast path, which runs only when
- * the viewport did not move, and both the row the cursor left and the row
- * it arrived at are visible by construction. Bounds-checking there cost
- * more than the whole freezing feature had left to spend. */
+ * ONLY VALID FOR A ROW THAT IS ON SCREEN, and it does not check. Its one
+ * caller is grid_goto()'s fast path, which runs only when the viewport did
+ * not move, so both the row the cursor left and the row it arrived at are
+ * visible by construction. */
 static uint8_t row_sy(uint16_t row)
 {
     return row < grid.frz_row
@@ -516,18 +518,28 @@ static void render_cell_at(uint8_t x, uint8_t y, uint8_t w,
 {
     char text[WB_TEXT_MAX];
     cell_record_t rec;
+    uint8_t b;
     color_t c = (row == grid.cur_row && col == grid.cur_col)
                     ? C_CURSOR : (in_sel(row, col) ? C_SEL : C_CELL);
 
     if (!wb_get(row, col, &rec)) {
         screen_text(x, y, "", w, c);
+        screen_border(x, y, w, 0);      /* clears the last repaint's lines */
         return;
     }
+
+    /* Read once: every one of these is a style out of banked RAM. */
+    b = wb_flags(&rec);
+
+    /* Borders are on the layer behind the text, so they cost the cell no
+     * character and the text below is drawn across the full width as if
+     * they were not there. The style bits ARE the tile, three places up. */
+    screen_border(x, y, w, (uint8_t)(b >> 3));
 
     wb_display_text(row, col, text, sizeof text);
     /* Off again before returning: screen_bold() is a mode, and the row
      * header and everything else on the row would inherit it. */
-    screen_bold(wb_bold(&rec));
+    screen_bold((uint8_t)(b & STY_BOLD));
     if (wb_align_right(&rec))
         screen_text_right(x, y, text, w, c);
     else
@@ -569,6 +581,9 @@ static void render_grid(void)
 {
     uint8_t sy;
 
+    /* Once, here, rather than per cell: bringing the layer up clears it,
+     * and with it down every screen_border() below returns at once. */
+    screen_borders(sty_bord);
     for (sy = 0; sy < grid.grid_rows; ++sy)
         render_row(sy);
 }
@@ -1240,6 +1255,8 @@ again:
     case K_REPLACE:
     case K_COL_W:
     case K_BOLD:
+    case K_BORDER:
+    case K_UNDER:
     case K_INS_ROW:
     case K_DEL_ROW:
         /* All of these live in OVL_MENU, which is already the loaded

@@ -14,6 +14,10 @@
 
 static char    chars[MAX_ROWS][MAX_COLS + 1];
 static color_t colors[MAX_ROWS][MAX_COLS];
+/* What the border layer would be showing. The machine keeps this in VRAM
+ * on a layer of its own; here it is a second plane the tests can read. */
+static uint8_t borders[MAX_ROWS][MAX_COLS];
+static uint8_t border_on;
 static uint8_t cols = 80, rows = 60;
 
 void screen_host_init(uint8_t c, uint8_t r)
@@ -111,6 +115,40 @@ color_t screen_host_color(uint8_t x, uint8_t y)
 
 /* Nothing to undo off the machine. */
 void screen_reset_charset(void) { }
+void screen_paper(uint8_t on) { (void)on; }
+void screen_shutdown(void) { }
+
+void screen_borders(uint8_t on)
+{
+    if (on && !border_on)
+        memset(borders, 0, sizeof borders);
+    border_on = on;
+}
+
+void screen_border(uint8_t x, uint8_t y, uint8_t len, uint8_t bits)
+{
+    uint8_t mid, t;
+
+    if (!border_on || !len)
+        return;
+
+    mid = (uint8_t)(bits & (SCREEN_B_T | SCREEN_B_B));
+    t   = (uint8_t)(mid | (bits & SCREEN_B_L));
+    while (len--) {
+        if (len == 0)
+            t |= (uint8_t)(bits & SCREEN_B_R);
+        if (in_range(x, y))
+            borders[y][x] = t;
+        ++x;
+        t = mid;
+    }
+}
+
+/* What the border layer holds at one character position, for the tests. */
+uint8_t screen_host_border(uint8_t x, uint8_t y)
+{
+    return in_range(x, y) ? borders[y][x] : 0;
+}
 
 /* The host screen is a character buffer; weight is not part of it. Kept so
  * the shared UI code needs no target test around the call. */

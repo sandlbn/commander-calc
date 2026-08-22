@@ -93,11 +93,23 @@ SMALLFLAGS := $(X16FLAGS) --codesize 90
 #
 # Note the cliff runs the other way here than it does for src/workbook:
 # lower is bigger. Measure before moving anything in or out of this group.
-TINY_DIRS := src/ui/filedlg.c src/platform/filedir_x16.c src/ui/menu.c \
-             src/ui/grid.c src/util/errors.c src/workbook/sheet_admin.c
+# workbook.c appears in CODESIZE_DIRS as well; this group is tested first, so
+# 100 applies to it. Re-measure any file moved between the groups: the best
+# setting is a property of the file and changes as the file does.
+TINY_DIRS := src/ui/filedlg.c src/platform/filedir_x16.c \
+             src/ui/grid.c src/util/errors.c src/workbook/sheet_admin.c \
+             src/workbook/workbook.c
 TINYFLAGS := $(X16FLAGS) --codesize 100
-ccflags = $(if $(filter $(TINY_DIRS),$1),$(TINYFLAGS),\
-            $(if $(filter $(CODESIZE_DIRS),$1),$(SMALLFLAGS),$(X16FLAGS)))
+
+# menu.c on its own: it decides whether OVL14 fits, so its setting is swept
+# separately. Override to measure:
+#   make x16 MENU_CODESIZE=90
+MENU_CODESIZE ?= 100
+MENUFLAGS := $(X16FLAGS) --codesize $(MENU_CODESIZE)
+
+ccflags = $(if $(filter src/ui/menu.c,$1),$(MENUFLAGS),\
+            $(if $(filter $(TINY_DIRS),$1),$(TINYFLAGS),\
+              $(if $(filter $(CODESIZE_DIRS),$1),$(SMALLFLAGS),$(X16FLAGS))))
 
 LDFLAGS  := -t cx16 -C cfg/x16sheet.cfg -m $(BUILD)/x16sheet.map \
             -Ln $(BUILD)/labels.txt

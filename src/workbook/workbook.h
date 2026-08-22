@@ -98,7 +98,15 @@ uint8_t wb_align_right(const cell_record_t *rec);
 
 /* Whether the cell's style asks for bold. Beside wb_align_right() because
  * it answers the same kind of question and the renderer asks both. */
-uint8_t wb_bold(const cell_record_t *rec);
+/* The cell's style flags, whole: STY_BOLD, the alignment, the borders and
+ * the rule bit.
+ *
+ * One accessor rather than one per bit. Each call reads the style out of
+ * banked RAM, and the renderer wants three of these about every cell it
+ * draws -- and workbook.c is compiled at --codesize 90, where a function
+ * costs far more than the code in it. Mask at the call site. */
+uint8_t wb_flags(const cell_record_t *rec);
+#define wb_bold(rec) ((uint8_t)(wb_flags(rec) & STY_BOLD))
 
 /* One level, as specified. Undoing does not itself become undoable. */
 /* Recalculate after an edit. Does nothing on a sheet with no formulas, so

@@ -71,6 +71,8 @@ static const char L_calca[] = "Auto recalc";
 static const char L_frz[] = "Freeze";
 static const char L_colw[] = "Column width";
 static const char L_bold[] = "Bold      ^B";
+static const char L_bord[] = "Border";
+static const char L_rule[] = "Underline";
 static const char L_chart[] = "Bars";
 static const char L_chartl[] = "Line";
 static const char L_chartp[] = "Pie";
@@ -127,6 +129,8 @@ static const item_t layout_items[] = {
     { L_delcol, MENU_DEL_COL },
     { L_colw,   MENU_COL_W   },
     { L_bold,   MENU_BOLD    },
+    { L_bord,   MENU_BORDER  },
+    { L_rule,   MENU_UNDER   },
     { L_frz,    MENU_FREEZE  },
     { 0, 0 }
 };
@@ -1151,54 +1155,96 @@ static uint8_t paste_run(void)
     return 1;
 }
 
-/* Turn bold on or off over the selection.
+/* Set or clear style bits over one cell, making the cell if it is not there.
  *
- * One command, not two: whether the block is being made bold or plain is
- * decided by the FIRST cell in it that exists. Bold already, and the block
- * comes off; otherwise it goes on. That is what makes a single menu entry
- * behave the way a toolbar button does.
+ * Bold only ever marks text that exists, so it passes make=0 and an empty
+ * cell is skipped. A border cannot: the point of bracketing a block is that
+ * the line shows whether or not anything has been typed, and the renderer
+ * reads the style off the cell record. So an empty cell in a bordered block
+ * gets a record with no value -- CELL_EMPTY, which render() falls through
+ * to its default and draws as nothing.
  *
- * Styles are interned, so this does not edit one in place -- editing the
- * style a cell names would change every other cell naming it too. It asks
- * for the style it wants and takes back whatever id that turns out to be,
- * new or already there.
- *
- * With no block, sel_r1..sel_c2 collapse onto the cursor, so this is one
- * cell without needing to know that.
+ * The cost is that the cell then counts as used, which the sort range and
+ * the exporters all read. Clearing the bit again does NOT remove the
+ * record; Clear does that.
  */
-static uint8_t bold_run(void)
+static uint8_t mark_cell(cellstore_t *cs, uint16_t r, uint16_t c,
+                         uint8_t set, uint8_t bits, uint8_t make)
 {
-    cellstore_t *cs = (cellstore_t *)wb_cells();
+    cell_record_t rec;
+    cell_style_t st;
+    uint8_t id;
+
+    if (!cells_get(cs, r, c, &rec)) {
+        if (!make)
+            return 1;                   /* nothing here, and none wanted */
+        memset(&rec, 0, sizeof rec);    /* CELL_EMPTY, no value */
+    }
+
+    /* Styles are interned, so this asks for the style it wants rather than
+     * editing the one the cell names -- which every other cell naming it
+     * would inherit. */
+    styles_get(rec.style, &st);
+    if (set)
+        st.flags = (uint8_t)(st.flags | bits);
+    else
+        st.flags = (uint8_t)(st.flags & ~bits);
+    if (styles_add(&st, &id) != ERR_OK)
+        return 0;                       /* the style table is full */
+
+    rec.style = id;
+    rec.col = (uint8_t)c;
+    cells_set(cs, r, c, &rec);
+    return 1;
+}
+
+/* Is any cell of the block already carrying `bits`? That is what decides
+ * which way a single menu entry goes, so a second use undoes the first. */
+static uint8_t block_has(cellstore_t *cs, uint8_t bits)
+{
     cell_record_t rec;
     cell_style_t st;
     uint16_t r, c;
-    uint8_t on = 0, id, seen = 0;
 
-    for (r = sel_r1; r <= sel_r2 && !seen; ++r)
+    for (r = sel_r1; r <= sel_r2; ++r)
         for (c = sel_c1; c <= sel_c2; ++c)
             if (cells_get(cs, r, c, &rec)) {
                 styles_get(rec.style, &st);
-                on = (uint8_t)!(st.flags & STY_BOLD);
-                seen = 1;
-                break;
+                if (st.flags & bits)
+                    return 1;
             }
-    if (!seen)
-        return 0;                       /* an empty block: nothing to mark */
+    return 0;
+}
+
+/* Toggle `bits` over every cell of the block. With no block selected
+ * sel_r1..sel_c2 collapse onto the cursor, so this is one cell without
+ * having to know that.
+ *
+ * STY_BORD_ALL means the box, which is only the perimeter: a cell in the
+ * middle of the block keeps what it had and is not created to hold a line.
+ * Clearing is not special -- every border bit comes off every cell of the
+ * block, so a box drawn over an underline goes away in one use. */
+static uint8_t block_mark(uint8_t bits, uint8_t make)
+{
+    cellstore_t *cs = (cellstore_t *)wb_cells();
+    uint8_t on = (uint8_t)!block_has(cs, bits);
+    uint16_t r, c;
 
     for (r = sel_r1; r <= sel_r2; ++r)
         for (c = sel_c1; c <= sel_c2; ++c) {
-            if (!cells_get(cs, r, c, &rec))
-                continue;
-            styles_get(rec.style, &st);
-            if (on)
-                st.flags = (uint8_t)(st.flags | STY_BOLD);
-            else
-                st.flags = (uint8_t)(st.flags & ~STY_BOLD);
-            if (styles_add(&st, &id) != ERR_OK)
-                return 1;               /* the table is full; keep what took */
-            rec.style = id;
-            rec.col = (uint8_t)c;
-            cells_set(cs, r, c, &rec);
+            uint8_t b = bits;
+
+            if (on && bits == STY_BORD_ALL) {
+                b = 0;
+                if (c == sel_c1) b |= STY_BORD_L;
+                if (c == sel_c2) b |= STY_BORD_R;
+                if (r == sel_r1) b |= STY_BORD_T;
+                if (r == sel_r2) b |= STY_BORD_B;
+                if (!b)
+                    continue;           /* inside the box: left alone */
+            }
+            if (!mark_cell(cs, r, c, on, b, make))
+                break;
         }
 
     wb_dirty = 1;
@@ -1219,7 +1265,11 @@ uint8_t menu_cmd(uint8_t key)
     if (key == MENU_INS_ROW || key == MENU_DEL_ROW)
         return row_cmd((uint8_t)(key == MENU_DEL_ROW));
     if (key == MENU_BOLD)
-        return bold_run();
+        return block_mark(STY_BOLD, 0);
+    if (key == MENU_BORDER)
+        return block_mark(STY_BORD_ALL, 1);
+    if (key == MENU_UNDER)
+        return block_mark(STY_BORD_B, 1);
     if (key == MENU_COPY)
         return copy_run();
     if (key == MENU_PASTE)
